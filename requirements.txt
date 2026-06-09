@@ -1,0 +1,30 @@
+# TrendRadar — Mapeador de Tendências em Tecnologia
+# Projeto Integrador UC17 — Curso de IA (SENAC)
+# Python 3.12
+
+# --- Coleta ---
+requests
+trafilatura
+lxml
+
+# --- PLN / Embeddings ---
+sentence-transformers
+transformers
+torch
+spacy
+
+# --- Modelagem de tópicos ---
+bertopic
+umap-learn
+hdbscan
+scikit-learn
+
+# --- Séries temporais / Deep Learning ---
+pandas
+numpy
+statsmodels
+
+# --- Dashboard ---
+streamlit
+plotly
+networkx
