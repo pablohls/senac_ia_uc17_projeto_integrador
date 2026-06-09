@@ -22,13 +22,25 @@
 
 Profissionais que dependem de antecipar tendências em tecnologia (analistas de inovação, criadores de conteúdo, PMs) hoje acompanham dezenas de portais manualmente e percebem movimentos tarde demais, sem medição objetiva de crescimento. O **TrendRadar** automatiza isso: descobre tópicos sozinho (sem taxonomia pré-definida), mede o crescimento de cada um ao longo do tempo e sinaliza os emergentes num dashboard.
 
-A pesquisa de viabilidade confirmou que a fonte original (Twitter/X) é inviável em 2026 e que o **sitemap mensal datado dos portais** (Olhar Digital validado ao vivo: ~1.5–2k artigos/mês, granularidade diária) resolve o histórico temporal. O núcleo algorítmico foi definido como um **Trend Score de 2 camadas** (estatístico robusto + surpresa de previsão por LSTM).
+A pesquisa de viabilidade confirmou que a fonte original (Twitter/X) é inviável em 2026 e que o **sitemap mensal datado dos portais** (Olhar Digital validado ao vivo: ~1.5–2k artigos/mês, granularidade diária) resolve o histórico temporal. O núcleo algorítmico foi definido como um **Trend Score de 2 camadas** (estatístico robusto + surpresa de previsão por LSTM). Este é um **Projeto Integrador acadêmico** (Curso de IA, 1200h), com restrições firmes: ~2 semanas até a banca, 4 integrantes e 1 GPU local — o que torna a priorização MUST > SHOULD > COULD e o plano B (Camada 1 estatística) decisões centrais, não detalhes.
+
+### Success Metrics
+
+Critérios mensuráveis de sucesso para a banca (avaliados sobre o dataset congelado):
+
+- **SM1 — Corpus:** ≥ 4.000 artigos datados coletados de ≥ 1 portal, cobrindo ≥ 4 meses. *(PoC já provou 2.271 em 2 meses.)*
+- **SM2 — Qualidade de tópicos:** ≥ 70% dos tópicos avaliados manualmente julgados coerentes (rótulo c-TF-IDF condizente).
+- **SM3 — Trend Score (Camada 1):** ranking de "Tópicos em Ascensão" produzido e demonstrável; função coberta por teste unitário.
+- **SM4 — Honestidade científica (Camada 2):** LSTM **sempre** reportada com MAE/RMSE em hold-out **contra baseline** — métrica reportada vale como sucesso, independentemente de a LSTM vencer.
+- **SM5 — Backtest:** ≥ 1 tendência conhecida detectada (Trend Score/surpresa sobem após o surto), documentada qualitativamente.
+- **SM6 — Demo:** dashboard sobe offline a partir dos artefatos pré-computados, sem coleta ao vivo, em < 2 min de setup.
 
 ### Change Log
 
 | Date | Version | Description | Author |
 |------|---------|-------------|--------|
 | 2026-06-08 | 1.0 | Criação inicial do PRD a partir do brief (modo YOLO) | Morgan (@pm) |
+| 2026-06-09 | 1.1 | Validação via pm-checklist: + Success Metrics (SM1–SM6), + NFR8 (performance dashboard), + seção Out of Scope, Checklist Results preenchido | Morgan (@pm) |
 
 ---
 
@@ -57,6 +69,29 @@ A pesquisa de viabilidade confirmou que a fonte original (Twitter/X) é inviáve
 - **NFR5:** Código **modular por fase** (`coleta`, `pln`, `modelagem`, `dashboard`), versionado e documentado.
 - **NFR6:** A previsão LSTM é **sempre avaliada contra um baseline** (MAE/RMSE reportados em hold-out) — honestidade científica sobre o resultado.
 - **NFR7:** O MVP deve ser **entregável em 2 semanas**, respeitando a priorização MUST > SHOULD > COULD.
+- **NFR8:** O dashboard, lendo os artefatos pré-computados, deve **carregar a tela principal em < 5 s** e responder a drill-down/filtros em < 2 s sobre o dataset congelado (percepção de ferramenta real na apresentação).
+
+---
+
+## Out of Scope (MVP) & Future Enhancements
+
+Fronteiras explícitas para proteger o prazo de 2 semanas:
+
+**Fora de escopo no MVP:**
+- **Coleta ao vivo durante a apresentação** — o demo roda sobre o dataset congelado (NFR3).
+- **Tempo real / streaming** — pipeline é batch offline; nada de ingestão contínua.
+- **Twitter/X e redes sociais** — descartado (API paga em 2026); fonte = sitemaps de portais.
+- **Autenticação, multiusuário e persistência de sessão** — dashboard read-only público.
+- **Acessibilidade formal (WCAG)** — registrada como melhoria futura, não MVP.
+- **Deploy em nuvem / CI-CD de produção** — execução local em GPU; sem infra distribuída.
+- **Multilíngue além de PT-BR** — corpus focado em português.
+
+**Melhorias futuras (pós-banca):**
+- Coleta incremental agendada + alertas por e-mail/Slack de novos sinais fortes.
+- Expansão de fontes (mais portais, GDELT pleno, newsletters).
+- LSTM multivariada / atenção e re-treino periódico.
+- Acessibilidade WCAG AA e internacionalização.
+- API pública para consumo do Trend Score por terceiros.
 
 ---
 
@@ -288,7 +323,25 @@ Como **avaliador (banca)**, quero **uma narrativa de caso real e a discussão é
 
 ## Checklist Results Report
 
-> **Pendente.** Self-check rápido (modo YOLO): Goals ✅, Requirements (FR/NFR) ✅, UI Goals ✅, Technical Assumptions ✅, Epics sequenciais com valor incremental ✅, Stories como vertical slices dimensionadas para sessão única ✅, priorização MUST/SHOULD/COULD explícita ✅. Recomendado rodar o `pm-checklist` formal e a validação de stories com @po antes de implementar.
+> **Executado:** `pm-checklist` (modo comprehensive) — 2026-06-09 por Morgan (@pm).
+
+**Sumário executivo:** Completude geral **~90%** (após quick-wins v1.1) · Escopo MVP **Just Right** · **READY FOR ARCHITECT** · Sem blockers.
+
+| Categoria | Status | Observação |
+|---|---|---|
+| 1. Problem Definition & Context | 🟢 PASS | Success Metrics SM1–SM6 adicionados; personas em nível adequado ao contexto acadêmico |
+| 2. MVP Scope Definition | 🟢 PASS | Seção Out of Scope / Future Enhancements adicionada |
+| 3. UX Requirements | 🟢 PASS | NFR8 (performance dashboard) adicionado; journeys cobertos em Core Screens + drill-down |
+| 4. Functional Requirements | 🟢 PASS | FR1–FR11 rastreáveis, testáveis e priorizados (MUST/SHOULD/COULD) |
+| 5. Non-Functional Requirements | 🟢 PASS | NFR1–NFR8; performance, LGPD/robots e baseline obrigatório cobertos |
+| 6. Epic & Story Structure | 🟢 PASS | Epic 1 com setup/scaffolding/smoke test/git; stories como vertical slices |
+| 7. Technical Guidance | 🟢 PASS | Constraints, trade-offs e risco LSTM sinalizados para deep-dive do @architect |
+| 8. Cross-Functional Requirements | 🟢 PASS | Schema de dados e integrações (sitemaps/GDELT) definidos; monitoramento leve (ok p/ contexto) |
+| 9. Clarity & Communication | 🟡 PARTIAL | Diagrama de pipeline pendente — delegado ao @architect (escopo dele) |
+
+**Top issues remanescentes:** nenhum BLOCKER/HIGH. LOW: diagrama de arquitetura (coberto pela fase de arquitetura).
+
+**Decisão final:** ✅ **READY FOR ARCHITECT** — handoff recomendado para @architect (arquitetura + ADR do Trend Score) e, em paralelo, @sm/@po para quebra e validação de stories do Epic 1.
 
 ---
 
