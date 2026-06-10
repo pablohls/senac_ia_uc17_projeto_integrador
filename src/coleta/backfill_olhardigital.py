@@ -34,7 +34,7 @@ import sys
 import time
 import urllib.request
 import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 SITEMAP_INDEX = "https://olhardigital.com.br/sitemap.xml"
@@ -43,9 +43,7 @@ USER_AGENT = "TrendRadar-PoC/0.1 (projeto integrador IA; coleta academica)"
 SITEMAP_NS = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 
 # /2026/06/06/ciencia-e-espaco/titulo-do-artigo/
-URL_RE = re.compile(
-    r"olhardigital\.com\.br/(\d{4})/(\d{2})/(\d{2})/([^/]+)/([^/]+)/?$"
-)
+URL_RE = re.compile(r"olhardigital\.com\.br/(\d{4})/(\d{2})/(\d{2})/([^/]+)/([^/]+)/?$")
 
 
 def baixar(url: str, timeout: int = 30) -> bytes:
@@ -57,7 +55,7 @@ def baixar(url: str, timeout: int = 30) -> bytes:
 
 def meses_alvo(n: int) -> list[str]:
     """Retorna os últimos N rótulos 'AAAA-MM' (incluindo o mês corrente)."""
-    hoje = datetime.now(timezone.utc)
+    hoje = datetime.now(UTC)
     rotulos = []
     ano, mes = hoje.year, hoje.month
     for _ in range(n):
@@ -117,11 +115,16 @@ def coletar_urls(n_meses: int, categoria: str | None, pausa: float):
                 continue
             vistos.add(url)
             registros.append(
-                {"data": data_iso, "categoria": cat, "fonte": FONTE,
-                 "url": url, "titulo": "", "texto": ""}
+                {
+                    "data": data_iso,
+                    "categoria": cat,
+                    "fonte": FONTE,
+                    "url": url,
+                    "titulo": "",
+                    "texto": "",
+                }
             )
-        print(f"[i] {sm_url.split('/')[-1]}: acumulado {len(registros)} artigos.",
-              file=sys.stderr)
+        print(f"[i] {sm_url.split('/')[-1]}: acumulado {len(registros)} artigos.", file=sys.stderr)
         time.sleep(pausa)
 
     return registros
@@ -132,8 +135,11 @@ def extrair_texto(registros, pausa: float, limite: int | None):
     try:
         import trafilatura  # type: ignore
     except ImportError:
-        print("[!] trafilatura não instalado — pulando extração de texto.\n"
-              "    Instale com: pip install trafilatura", file=sys.stderr)
+        print(
+            "[!] trafilatura não instalado — pulando extração de texto.\n"
+            "    Instale com: pip install trafilatura",
+            file=sys.stderr,
+        )
         return registros
 
     alvo = registros[:limite] if limite else registros
@@ -167,14 +173,23 @@ def salvar_csv(registros, caminho: Path):
 def main():
     p = argparse.ArgumentParser(description="Backfill Olhar Digital via sitemap (PoC).")
     p.add_argument("--meses", type=int, default=3, help="quantos meses para trás (default 3)")
-    p.add_argument("--categoria", default=None,
-                   help="filtrar por categoria da URL (ex.: ciencia-e-espaco)")
-    p.add_argument("--sem-texto", action="store_true",
-                   help="só listar URLs datadas, sem baixar o texto dos artigos")
-    p.add_argument("--limite", type=int, default=None,
-                   help="máximo de artigos para extrair texto (útil em teste)")
-    p.add_argument("--pausa", type=float, default=1.0,
-                   help="segundos entre requisições (polidez; default 1.0)")
+    p.add_argument(
+        "--categoria", default=None, help="filtrar por categoria da URL (ex.: ciencia-e-espaco)"
+    )
+    p.add_argument(
+        "--sem-texto",
+        action="store_true",
+        help="só listar URLs datadas, sem baixar o texto dos artigos",
+    )
+    p.add_argument(
+        "--limite",
+        type=int,
+        default=None,
+        help="máximo de artigos para extrair texto (útil em teste)",
+    )
+    p.add_argument(
+        "--pausa", type=float, default=1.0, help="segundos entre requisições (polidez; default 1.0)"
+    )
     p.add_argument("--saida", default="dados/olhardigital.csv", help="arquivo CSV de saída")
     args = p.parse_args()
 

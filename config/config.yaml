@@ -1,0 +1,26 @@
+# ==========================================================================
+# TrendRadar — Configuração central do pipeline
+# ==========================================================================
+# Regra do projeto (Coding Standards): NENHUM número mágico no código.
+# Todo parâmetro ajustável da pipeline mora aqui e é carregado/validado por
+# src/common/config.py (pydantic). A banca valoriza poder ajustar e justificar
+# cada parâmetro a partir de um único lugar.
+# --------------------------------------------------------------------------
+
+# Fontes de coleta (portais de tecnologia em PT-BR).
+fontes:
+  - olhar_digital
+  - canaltech
+
+# Modelo de embeddings semânticos (Sentence-Transformers, suporte a PT-BR).
+# Multilíngue para cobrir bem português; trocável sem mexer no código.
+embedding_model: sentence-transformers/paraphrase-multilingual-mpnet-base-v2
+
+# Parâmetros do Trend Score (ver docs/architecture/adr-001-trend-score.md).
+trend_score:
+  w: 7            # janela (dias) da média móvel das séries por tópico
+  alpha: 1.0      # suavização de Laplace na razão recente/base (evita /0)
+  H: 60           # horizonte (dias) usado como base histórica de comparação
+  lambda_burst: 1.0  # peso do termo de "surto" (burst) na Camada 1
+  n_min: 5        # nº mínimo de documentos p/ um tópico entrar no ranking
+  k: 2.5          # nº de desvios-padrão p/ marcar anomalia (Camada 2 / alertas)

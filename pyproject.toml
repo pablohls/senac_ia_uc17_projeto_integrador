@@ -1,0 +1,73 @@
+[project]
+name = "trendradar"
+version = "0.1.0"
+description = "Mapeador de tendências em tecnologia (PLN + Deep Learning) — Projeto Integrador UC17 / SENAC"
+authors = [{ name = "Equipe TrendRadar (UC17)" }]
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12,<4.0"
+# Dependências são resolvidas pelo Poetry a partir de [tool.poetry.dependencies]
+# (necessário para apontar o torch à source CUDA explícita).
+dynamic = ["dependencies"]
+
+[project.scripts]
+trendradar = "run_all:main"
+
+[tool.poetry]
+packages = [{ include = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+
+# --- Deep Learning (PyTorch via source explícita CUDA 12.4) ---
+torch = { version = "^2.4", source = "pytorch-cu124" }
+
+# --- PLN / Embeddings ---
+sentence-transformers = "^3.0"
+bertopic = "^0.16"
+
+# --- Dados / IO ---
+pandas = "^2.2"
+pyarrow = "^17.0"
+numpy = "*"
+
+# --- Séries temporais ---
+statsmodels = "^0.14"
+
+# --- Dashboard ---
+streamlit = "^1.38"
+plotly = "^5.22"
+networkx = "^3.3"
+
+# --- Config ---
+pydantic = "^2.8"
+pyyaml = "^6.0"
+
+# --- Coleta ---
+trafilatura = "^1.12"
+lxml = "^5.2"
+requests = "^2.32"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3"
+ruff = "^0.6"
+
+# Source explícita do PyTorch com wheels CUDA 12.4.
+# priority = "explicit" garante que SÓ o torch venha daqui (evita travar a resolução).
+# Fallback: trocar "cu124" por "cu121" ou "cpu" se o driver da GPU não suportar 12.4.
+[[tool.poetry.source]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+priority = "explicit"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# E/F = pycodestyle/pyflakes, I = isort (imports), UP = pyupgrade
+select = ["E", "F", "I", "UP"]
+
+[build-system]
+requires = ["poetry-core>=2.0.0"]
+build-backend = "poetry.core.masonry.api"

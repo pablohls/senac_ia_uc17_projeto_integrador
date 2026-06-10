@@ -32,30 +32,36 @@ Coleta (sitemap)  →  PLN (limpeza + embeddings)  →  Modelagem (BERTopic)  �
 ## Estrutura
 
 ```
+config/          # config.yaml — parâmetros centrais (sem números mágicos no código)
 src/
-  coleta/        # coleta de dados (sitemap → dataset)
-  pln/           # limpeza e embeddings
-  modelagem/     # clustering de tópicos
-  dashboard/     # app Streamlit
-docs/            # planejamento e design
-dados/           # dataset (não versionado — reprodutível)
+  common/        # utilidades compartilhadas (io, config, logging)
+  coleta/        # Fase 1: coleta via sitemap → corpus.parquet
+  pln/           # Fase 2: limpeza/normalização + embeddings
+  modelagem/     # Fase 3: clustering de tópicos (BERTopic) + atribuição
+  scores/        # Fase 4: séries temporais + Trend Score (L1 estatística + L2 LSTM)
+  dashboard/     # Fase 5: app Streamlit
+dados/{raw,processed,topics,scores}/   # artefatos entre fases (não versionados)
+tests/  notebooks/  docs/
 ```
 
-## Como rodar a prova de conceito da coleta
+## Como rodar (reprodução do demo)
+
+Pré-requisitos: **Python 3.12** e **Poetry**. Para a GPU, driver NVIDIA com suporte a
+CUDA 12.4 (o ambiente foi validado em NVIDIA T1000, driver 573.44). Sem GPU compatível,
+o pipeline roda em modo CPU — basta trocar `cu124` por `cpu` no `pyproject.toml`.
 
 ```bash
-pip install -r requirements.txt
-
-# Listar artigos datados dos últimos 2 meses (rápido, sem baixar texto):
-python src/coleta/backfill_olhardigital.py --meses 2 --sem-texto
-
-# Coletar texto dos últimos 4 meses (precisa de trafilatura):
-python src/coleta/backfill_olhardigital.py --meses 4 --limite 50
+poetry install            # 1. cria o ambiente isolado e instala tudo (trava versões no poetry.lock)
+poetry run trendradar     # 2. executa o pipeline (coleta → PLN → modelagem → scores)
+streamlit run src/dashboard/app.py   # 3. abre o dashboard de tendências
 ```
+
+> Verificação rápida do ambiente: `poetry run pytest tests/smoke_test.py -s`
+> (confirma imports, detecção de GPU e leitura/escrita de Parquet).
 
 ## Stack
 
-Python 3.12 · PyTorch · Sentence-Transformers · BERTopic · Streamlit · Plotly · NetworkX
+Python 3.12 · Poetry · PyTorch (CUDA 12.4) · Sentence-Transformers · BERTopic · pandas/pyarrow · statsmodels · Streamlit · Plotly · NetworkX · pydantic
 
 ## Time
 

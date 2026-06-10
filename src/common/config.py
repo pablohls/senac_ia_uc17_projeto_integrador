@@ -1,0 +1,55 @@
+"""Carregamento e validação da configuração central do TrendRadar.
+
+Toda a pipeline lê seus parâmetros a partir de `config/config.yaml` através de
+um objeto pydantic — nunca de constantes espalhadas no código (Coding Standards).
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import yaml
+from pydantic import BaseModel, Field
+
+# Caminho padrão do arquivo de configuração (relativo à raiz do projeto).
+DEFAULT_CONFIG_PATH = Path("config/config.yaml")
+
+
+class TrendScoreParams(BaseModel):
+    """Parâmetros do algoritmo Trend Score (ver ADR-001)."""
+
+    w: int = Field(7, gt=0, description="Janela (dias) da média móvel.")
+    alpha: float = Field(1.0, ge=0, description="Suavização de Laplace.")
+    H: int = Field(60, gt=0, description="Horizonte (dias) de base histórica.")
+    lambda_burst: float = Field(1.0, ge=0, description="Peso do termo de surto.")
+    n_min: int = Field(5, gt=0, description="Mínimo de docs por tópico no ranking.")
+    k: float = Field(2.5, gt=0, description="Desvios-padrão p/ anomalia.")
+
+
+class Config(BaseModel):
+    """Configuração raiz do projeto, espelhando `config/config.yaml`."""
+
+    fontes: list[str] = Field(..., min_length=1)
+    embedding_model: str
+    trend_score: TrendScoreParams
+
+
+def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> Config:
+    """Lê e valida `config.yaml`, retornando um objeto `Config`.
+
+    Args:
+        path: caminho do YAML de configuração.
+
+    Returns:
+        Instância validada de :class:`Config`.
+
+    Raises:
+        FileNotFoundError: se o arquivo não existir.
+        pydantic.ValidationError: se algum campo estiver ausente/inválido.
+    """
+    config_path = Path(path)
+    if not config_path.exists():
+        raise FileNotFoundError(f"Arquivo de configuração não encontrado: {config_path}")
+    with config_path.open(encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+    return Config(**data)
