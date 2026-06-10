@@ -41,8 +41,11 @@ Thumbs.db
 .kimi/
 .github/
 
-# Dados (reprodutíveis via src/coleta) — não versionar o corpus
-dados/
+# Dados (reprodutíveis via src/coleta) — não versionar o corpus,
+# mas manter a estrutura de pastas no git via .gitkeep
+dados/**
+!dados/**/
+!dados/**/.gitkeep
 
 # Python
 __pycache__/
@@ -56,6 +59,8 @@ env/
 # Modelos / embeddings / artefatos pesados
 *.pt
 *.bin
-*.parquet
 embeddings/
 models/
+
+# NOTA: *.parquet e *.npy NÃO são ignorados aqui — são rastreados via Git LFS
+# (ver .gitattributes). O corpus de `dados/` segue ignorado acima (reprodutível).
