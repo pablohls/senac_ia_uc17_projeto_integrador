@@ -63,6 +63,70 @@ streamlit run src/dashboard/app.py   # 3. abre o dashboard de tendências
 
 Python 3.12 · Poetry · PyTorch (CUDA 12.4) · Sentence-Transformers · BERTopic · pandas/pyarrow · statsmodels · Streamlit · Plotly · NetworkX · pydantic
 
+## Guia rápido de Git (para a equipe)
+
+> Para quem está começando: Git é o sistema que guarda o **histórico** do projeto e
+> permite que os 4 integrantes trabalhem juntos sem sobrescrever o trabalho um do outro.
+> Pense num "salvar com histórico" compartilhado. Rode os comandos no terminal, dentro
+> da pasta do projeto. **Em caso de dúvida, pergunte antes de `push` — é difícil desfazer.**
+
+### 1. Primeira vez (configuração — faz só uma vez por máquina)
+
+```bash
+# Clonar (baixar) o repositório para a sua máquina
+git clone https://github.com/pablohls/senac_ia_uc17_projeto_integrador.git
+cd senac_ia_uc17_projeto_integrador
+
+git lfs install          # ativa o Git LFS (necessário p/ arquivos grandes: .parquet, .npy)
+
+# Se identifique (aparece nos seus commits) — use seu nome e e-mail
+git config --global user.name  "Seu Nome"
+git config --global user.email "voce@email.com"
+```
+
+### 2. Fluxo do dia a dia
+
+```bash
+git pull                 # ANTES de começar: baixa o que os colegas enviaram
+git status               # mostra o que você mudou (vermelho = não salvo no git)
+git add nome_do_arquivo  # marca um arquivo para o próximo commit (ou `git add .` p/ todos)
+git commit -m "feat: descreve o que você fez"   # "salva com histórico" localmente
+git push                 # envia seus commits para o GitHub (compartilha com a equipe)
+```
+
+> Ordem mental: **pull** (pega novidades) → trabalhe → **add** → **commit** → **push** (envia).
+> Sempre dê `pull` antes de `push` para evitar conflitos.
+
+### 3. Trabalhando com branches (ramos)
+
+Um *branch* é uma "linha de trabalho paralela" — você mexe na sua parte sem afetar a
+versão principal (`main`) até estar pronto.
+
+```bash
+git checkout -b minha-feature   # cria um branch novo e já entra nele
+git checkout main               # volta para o branch principal
+git branch                      # lista seus branches (o atual tem um *)
+git merge minha-feature         # (estando na main) traz o trabalho do branch para a main
+```
+
+### Referência rápida
+
+| Comando | O que faz |
+|---|---|
+| `git clone <url>` | Baixa o repositório pela primeira vez |
+| `git pull` | Atualiza sua cópia com o que está no GitHub |
+| `git status` | Mostra arquivos alterados / pendentes |
+| `git add <arquivo>` | Prepara um arquivo para o commit (`git add .` = todos) |
+| `git commit -m "msg"` | Salva as mudanças no histórico local |
+| `git push` | Envia seus commits para o GitHub |
+| `git checkout -b <nome>` | Cria e entra em um branch novo |
+| `git checkout <nome>` | Troca para um branch existente |
+| `git log --oneline` | Mostra o histórico de commits resumido |
+| `git diff` | Mostra exatamente o que você mudou |
+
+> **Padrão de mensagem de commit:** comece com o tipo — `feat:` (novo), `fix:` (correção),
+> `docs:` (documentação), `chore:` (manutenção). Ex.: `git commit -m "feat: coletor de sitemap"`.
+
 ## Time
 
 Projeto desenvolvido por 4 integrantes como entrega final da UC17.
