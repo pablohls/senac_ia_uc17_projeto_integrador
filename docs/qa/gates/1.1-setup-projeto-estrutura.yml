@@ -1,0 +1,44 @@
+schema: 1
+story: "1.1"
+story_title: "Setup do projeto e estrutura"
+gate: PASS
+status_reason: "Todos os 6 AC atendidos e verificados de forma independente (testes 4/4, GPU detectada, lint verde, LFS e segurança OK). Observações são apenas notas de evolução não-bloqueantes."
+reviewer: "Quinn (Test Architect)"
+updated: "2026-06-10T00:00:00Z"
+
+top_issues: []
+waiver: { active: false }
+
+quality_score: 100
+expires: "2026-06-24T00:00:00Z"
+
+evidence:
+  tests_reviewed: 4
+  risks_identified: 0
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6]
+    ac_gaps: []
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: ".env ignorado (apenas .env.example versionado); nenhum secret hardcoded; sem PII nesta fase de setup."
+  performance:
+    status: PASS
+    notes: "N/A para setup; smoke test executa em ~38-60s. Sem gargalos."
+  reliability:
+    status: PASS
+    notes: "Smoke test degrada graciosamente em CPU (não falha); config validada por pydantic com constraints."
+  maintainability:
+    status: PASS
+    notes: "Código limpo com type hints e docstrings; ruff verde; configuração centralizada (sem números mágicos); pyproject em PEP 621."
+
+recommendations:
+  immediate: []
+  future:
+    - action: "Validar o carregamento real do embedding_model (paraphrase-multilingual-mpnet-base-v2) — fora do smoke test para evitar dependência de rede; será exercido na Story 2.2 (embeddings)."
+      refs: ["config/config.yaml", "tests/smoke_test.py"]
+    - action: "README passo 3 (`streamlit run src/dashboard/app.py`) referencia arquivo que será criado na Story 4.1; considerar anotar '(disponível ao fim do Epic 4)' para evitar confusão de quem reproduz hoje."
+      refs: ["README.md"]
+    - action: "`.gitattributes` com `* text=auto eol=lf` força LF e gera warning benigno no Windows (poetry.lock); manter, é o comportamento desejado para consistência da equipe."
+      refs: [".gitattributes"]
