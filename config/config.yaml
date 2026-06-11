@@ -12,6 +12,22 @@ fontes:
   - olhar_digital
   - canaltech
 
+# Parâmetros da coleta (Story 1.2 — coletor de sitemap).
+# O coletor lê o sitemap index do portal, seleciona os mapas dos últimos
+# `meses` e extrai as URLs datadas dos artigos. Nada de número mágico no código.
+coleta:
+  sitemap:
+    # Sitemap index do Olhar Digital (aponta para os mapas mensais).
+    index_url: https://olhardigital.com.br/sitemap.xml
+    # Janela histórica: quantos meses para trás coletar (inclui o mês corrente).
+    meses: 4
+    # Filtro opcional por categoria (vazio = todas as categorias).
+    categorias: []
+    # Identificação enviada ao servidor (NFR4 — coleta educada).
+    user_agent: "TrendRadar/0.1 (projeto integrador IA; coleta academica)"
+    # Pausa entre requisições, em segundos (rate-limit ~1 req/s, NFR4).
+    rate_limit_s: 1.0
+
 # Modelo de embeddings semânticos (Sentence-Transformers, suporte a PT-BR).
 # Multilíngue para cobrir bem português; trocável sem mexer no código.
 embedding_model: sentence-transformers/paraphrase-multilingual-mpnet-base-v2

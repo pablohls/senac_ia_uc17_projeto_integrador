@@ -26,12 +26,34 @@ class TrendScoreParams(BaseModel):
     k: float = Field(2.5, gt=0, description="Desvios-padrão p/ anomalia.")
 
 
+class SitemapParams(BaseModel):
+    """Parâmetros do coletor de sitemap (Story 1.2)."""
+
+    index_url: str = Field(..., description="Sitemap index do portal.")
+    meses: int = Field(4, gt=0, description="Janela histórica em meses (inclui o corrente).")
+    categorias: list[str] = Field(
+        default_factory=list, description="Filtro opcional por categoria (vazio = todas)."
+    )
+    user_agent: str = Field(
+        "TrendRadar/0.1 (projeto integrador IA; coleta academica)",
+        description="Identificação enviada ao servidor (NFR4).",
+    )
+    rate_limit_s: float = Field(1.0, ge=0, description="Pausa entre requisições, em segundos.")
+
+
+class ColetaParams(BaseModel):
+    """Bloco de configuração da fase de coleta."""
+
+    sitemap: SitemapParams
+
+
 class Config(BaseModel):
     """Configuração raiz do projeto, espelhando `config/config.yaml`."""
 
     fontes: list[str] = Field(..., min_length=1)
     embedding_model: str
     trend_score: TrendScoreParams
+    coleta: ColetaParams
 
 
 def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> Config:
