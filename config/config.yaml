@@ -37,6 +37,17 @@ coleta:
     timeout_s: 30
     # Limite opcional de artigos a extrair (útil em amostra/teste). null = todos.
     limite: null
+  # Segunda fonte (Story 1.4 — Canaltech). Estrutura diferente do Olhar Digital:
+  # a data vem do <lastmod> do sitemap (não da URL) e os shards não são mensais.
+  canaltech:
+    # Sitemap index do Canaltech (aponta para shards geral-N.xml).
+    index_url: https://static.canaltech.com.br/smap/geral.xml
+    # Janela histórica em meses (filtra por lastmod >= 1º dia do mês mais antigo).
+    meses: 4
+    # Identificação enviada ao servidor (NFR4).
+    user_agent: "TrendRadar/0.1 (projeto integrador IA; coleta academica)"
+    # Pausa entre requisições, em segundos (~1 req/s, NFR4).
+    rate_limit_s: 1.0
 
 # Modelo de embeddings semânticos (Sentence-Transformers, suporte a PT-BR).
 # Multilíngue para cobrir bem português; trocável sem mexer no código.

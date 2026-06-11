@@ -11,7 +11,7 @@ from datetime import date
 
 import pandas as pd
 
-from src.coleta.extract import COLUNAS_A1, gerar_doc_id, montar_corpus
+from src.coleta.extract import COLUNAS_A1, gerar_doc_id, mesclar_corpus, montar_corpus
 
 URL_A = "https://olhardigital.com.br/2026/06/06/ia/artigo-a/"
 URL_B = "https://olhardigital.com.br/2026/06/07/games/artigo-b/"
@@ -98,3 +98,32 @@ def test_montar_corpus_vazio_tem_schema() -> None:
     df = montar_corpus([])
     assert df.empty
     assert list(df.columns) == COLUNAS_A1
+
+
+# ---------------------------------------------------------------------------
+# mesclar_corpus — corpus multi-fonte (Story 1.4, AC2/AC3)
+# ---------------------------------------------------------------------------
+def test_mesclar_corpus_combina_duas_fontes() -> None:
+    olhar = montar_corpus([_artigo(URL_A, fonte="olhar_digital")])
+    canaltech = montar_corpus([
+        _artigo("https://canaltech.com.br/apps/x/", fonte="canaltech")
+    ])
+    out = mesclar_corpus(olhar, canaltech)
+    assert len(out) == 2
+    assert set(out["fonte"].astype(str)) == {"olhar_digital", "canaltech"}
+    assert list(out.columns) == COLUNAS_A1
+
+
+def test_mesclar_corpus_dedup_por_url_entre_fontes() -> None:
+    a = montar_corpus([_artigo(URL_A)])
+    b = montar_corpus([_artigo(URL_A), _artigo(URL_B)])  # URL_A repetida
+    out = mesclar_corpus(a, b)
+    assert len(out) == 2
+    assert out["url"].duplicated().sum() == 0
+
+
+def test_mesclar_corpus_base_vazia() -> None:
+    novos = montar_corpus([_artigo(URL_A)])
+    out = mesclar_corpus(None, novos)
+    assert len(out) == 1
+    assert list(out.columns) == COLUNAS_A1

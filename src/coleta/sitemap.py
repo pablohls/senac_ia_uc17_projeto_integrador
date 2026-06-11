@@ -30,6 +30,11 @@ from src.common.io import salvar_parquet
 
 # Identificador da fonte no schema de saída.
 FONTE = "olhar_digital"
+FONTE_CANALTECH = "canaltech"
+
+# Padrão da URL de artigo do Canaltech: /categoria/slug/ (data NÃO está na URL —
+# vem do <lastmod>). Ex.: https://canaltech.com.br/apps/whatsapp-vai-exigir.../
+CANALTECH_ARTIGO_RE = re.compile(r"canaltech\.com\.br/([^/]+)/([^/]+)")
 
 # Namespace padrão dos sitemaps (protocolo sitemaps.org 0.9).
 SITEMAP_NS = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
@@ -220,6 +225,144 @@ def listar_urls(config: Config) -> pd.DataFrame:
             time.sleep(params.rate_limit_s)
 
     return construir_dataframe(todas_urls, params.categorias)
+
+
+# ---------------------------------------------------------------------------
+# Segunda fonte: Canaltech (Story 1.4) — estrutura diferente do Olhar Digital
+# ---------------------------------------------------------------------------
+# O Canaltech difere em dois pontos: (a) a data vem do <lastmod> do sitemap, não
+# da URL; (b) os shards (geral-N.xml) não são mensais e cobrem todo o histórico.
+# Por isso filtramos a janela recente por `lastmod` em vez de selecionar sitemaps.
+def parse_categoria_canaltech(url: str) -> str | None:
+    """Deriva a ``categoria`` da URL do Canaltech (1º segmento do path).
+
+    Args:
+        url: URL do artigo (``canaltech.com.br/{categoria}/{slug}/``).
+
+    Returns:
+        A categoria (1º segmento) para URLs de artigo (≥2 segmentos); ``None``
+        para páginas de seção/home (que não casam o padrão).
+    """
+    m = CANALTECH_ARTIGO_RE.search(url)
+    return m.group(1) if m else None
+
+
+def data_corte(meses: int, hoje: date | None = None) -> date:
+    """Primeiro dia do mês mais antigo da janela de ``meses`` (determinístico).
+
+    Usado para filtrar artigos do Canaltech por ``lastmod`` (ex.: ``meses=4`` em
+    junho/2026 → corte ``2026-03-01``).
+
+    Args:
+        meses: tamanho da janela em meses (inclui o mês corrente).
+        hoje: data de referência (injetável para testes; default = agora UTC).
+
+    Returns:
+        ``date`` do 1º dia do mês mais antigo da janela.
+    """
+    ref = hoje or datetime.now(UTC).date()
+    total = (ref.year * 12 + (ref.month - 1)) - (meses - 1)
+    ano, mes0 = divmod(total, 12)
+    return date(ano, mes0 + 1, 1)
+
+
+def _parse_lastmod(valor: str) -> date | None:
+    """Extrai a ``date`` de um ``<lastmod>`` ISO (``2026-06-11T10:40:12-03:00``)."""
+    try:
+        return date.fromisoformat((valor or "")[:10])
+    except (ValueError, TypeError):
+        return None
+
+
+def construir_urls_canaltech(
+    registros: list[tuple[str, str]], corte: date
+) -> pd.DataFrame:
+    """Monta o DataFrame de URLs do Canaltech a partir de ``(loc, lastmod)`` (sem rede).
+
+    Filtra pela janela (``lastmod >= corte``), deriva a categoria da URL, deduplica
+    por ``url`` e produz o **mesmo schema** da Story 1.2 (``url, data, categoria,
+    fonte``) para reuso direto pela extração de texto (1.3).
+
+    Args:
+        registros: lista de ``(url, lastmod_iso)`` dos shards.
+        corte: data mínima de publicação (do :func:`data_corte`).
+
+    Returns:
+        DataFrame ``url, data, categoria, fonte`` (``fonte = "canaltech"``).
+    """
+    linhas: list[dict] = []
+    vistos: set[str] = set()
+    for loc, lastmod in registros:
+        if loc in vistos:
+            continue
+        d = _parse_lastmod(lastmod)
+        if d is None or d < corte:
+            continue
+        categoria = parse_categoria_canaltech(loc)
+        if categoria is None:
+            continue  # página de seção/home — não é artigo
+        vistos.add(loc)
+        linhas.append({"url": loc, "data": d, "categoria": categoria, "fonte": FONTE_CANALTECH})
+
+    df = pd.DataFrame(linhas, columns=["url", "data", "categoria", "fonte"])
+    if not df.empty:
+        df["fonte"] = df["fonte"].astype("category")
+    return df
+
+
+def registros_canaltech_de_xml(xml_bytes: bytes) -> list[tuple[str, str]]:
+    """Extrai ``(loc, lastmod)`` de cada ``<url>`` de um shard do Canaltech.
+
+    Diferente de :func:`urls_de_xml` (só ``<loc>``), aqui também lemos o
+    ``<lastmod>`` — pois é dele que vem a data do artigo.
+
+    Args:
+        xml_bytes: conteúdo bruto do shard (pode ser grande — usa ``huge_tree``).
+
+    Returns:
+        Lista de ``(url, lastmod_iso)``.
+    """
+    raiz = etree.fromstring(
+        xml_bytes, parser=etree.XMLParser(recover=True, huge_tree=True)
+    )
+    saida: list[tuple[str, str]] = []
+    for u in raiz.findall(".//sm:url", SITEMAP_NS):
+        loc = u.findtext("sm:loc", namespaces=SITEMAP_NS)
+        if not loc:
+            continue
+        lastmod = u.findtext("sm:lastmod", namespaces=SITEMAP_NS) or ""
+        saida.append((loc.strip(), lastmod.strip()))
+    return saida
+
+
+def listar_urls_canaltech(config: Config) -> pd.DataFrame:
+    """Lista as URLs datadas do Canaltech na janela dos últimos N meses.
+
+    Lê o index → shards, extrai ``(loc, lastmod)`` de cada shard, filtra pela
+    janela e monta o DataFrame no schema da Story 1.2. Respeita rate-limit (NFR4).
+
+    Args:
+        config: configuração validada (requer ``coleta.canaltech``).
+
+    Returns:
+        DataFrame ``url, data, categoria, fonte`` (``fonte = "canaltech"``).
+    """
+    params = config.coleta.canaltech
+    if params is None:
+        raise ValueError("config.coleta.canaltech ausente — defina a seção no config.yaml.")
+    corte = data_corte(params.meses)
+
+    shards = urls_de_xml(baixar(params.index_url, params.user_agent))
+    registros: list[tuple[str, str]] = []
+    for i, shard in enumerate(shards):
+        try:
+            registros.extend(registros_canaltech_de_xml(baixar(shard, params.user_agent)))
+        except requests.RequestException as e:
+            print(f"[!] Falha em {shard}: {e}")
+        if i < len(shards) - 1:
+            time.sleep(params.rate_limit_s)
+
+    return construir_urls_canaltech(registros, corte)
 
 
 def main() -> None:
