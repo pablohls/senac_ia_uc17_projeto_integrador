@@ -27,6 +27,16 @@ coleta:
     user_agent: "TrendRadar/0.1 (projeto integrador IA; coleta academica)"
     # Pausa entre requisições, em segundos (rate-limit ~1 req/s, NFR4).
     rate_limit_s: 1.0
+  # Parâmetros da extração de texto (Story 1.3 — dataset congelado A1).
+  extract:
+    # Identificação enviada ao servidor (NFR4).
+    user_agent: "TrendRadar/0.1 (projeto integrador IA; coleta academica)"
+    # Pausa entre downloads de artigos, em segundos (~1 req/s, NFR4).
+    rate_limit_s: 1.0
+    # Tempo máximo por requisição, em segundos.
+    timeout_s: 30
+    # Limite opcional de artigos a extrair (útil em amostra/teste). null = todos.
+    limite: null
 
 # Modelo de embeddings semânticos (Sentence-Transformers, suporte a PT-BR).
 # Multilíngue para cobrir bem português; trocável sem mexer no código.
