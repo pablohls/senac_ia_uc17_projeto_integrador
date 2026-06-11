@@ -1,0 +1,57 @@
+schema: 1
+story: "1.4"
+story_title: "Segunda fonte (Canaltech) — corpus multi-fonte"
+gate: CONCERNS
+status_reason: "AC1-AC3 atendidos e verificados (39 testes, ruff verde, 9.674 URLs Canaltech listadas, amostra multi-fonte íntegra). CONCERNS por qualidade de dados da fonte (data via lastmod + categorias produto/video) e pelo merge completo deferido ao freeze manual — ambos a avaliar antes do Epic 3."
+reviewer: "Quinn (Test Architect)"
+updated: "2026-06-11T00:00:00Z"
+
+top_issues:
+  - id: "DATA-001"
+    severity: medium
+    finding: "Qualidade de dados do Canaltech: a `data` vem SÓ do <lastmod> (sem data na URL p/ cruzar), então conteúdo antigo re-editado recebe data recente (ex.: páginas `video` 'WWDC 2017'/'E3 2016' datadas 2026). Além disso, a categoria `produto` domina (5.083/9.674 ≈ 53%) — possível conteúdo não-jornalístico (páginas de produto/galerias)."
+    suggested_action: "Antes do Epic 3 (tendências), avaliar allow-list de categorias e/ou filtro de qualidade (tamanho mínimo de texto) para a fonte Canaltech. Fora do escopo da 1.4 (No Invention) — decisão de produto/banca."
+  - id: "REQ-002"
+    severity: low
+    finding: "O merge completo do Canaltech no corpus.parquet é passo manual (corpus ainda não congelado — depende do freeze da Story 1.3 / REQ-001). Validado apenas em amostra (10+10)."
+    suggested_action: "Rodar `python -m src.coleta.extract` (freeze) e depois `python -m src.coleta.canaltech` (merge) antes do Epic 2/3."
+
+waiver: { active: false }
+
+quality_score: 85
+expires: "2026-06-25T00:00:00Z"
+
+evidence:
+  tests_reviewed: 14
+  risks_identified: 3
+  trace:
+    ac_covered: [1, 2, 3]
+    ac_gaps: []
+    notes:
+      - "AC1: data_corte/construir_urls_canaltech (8 testes determinísticos: parser de categoria, janela, dedup, lastmod inválido) + 9.674 URLs reais na janela mar-jun/2026 (0 dup, 0 antes do corte)."
+      - "AC2: extrair_artigos reusado integralmente; fonte=canaltech; 7 colunas A1 confirmadas na amostra."
+      - "AC3: mesclar_corpus (concat + dedup por url, 3 testes) + amostra multi-fonte (20 art., 0 dup url/doc_id). Dedup por título similar era opcional ('se possível') — não implementado (ver future)."
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: "User-Agent + timeout; sem secrets; robots.txt agora cacheado POR HOST (robusto p/ multi-fonte — resolve rec. da 1.3). huge_tree no parser dos shards grandes (necessário; fonte semi-confiável)."
+  performance:
+    status: PASS
+    notes: "Shards grandes (~58MB total) baixados 1x com rate-limit; filtro de janela por lastmod evita processar 14 anos de histórico no resultado. Núcleo determinístico <1s."
+  reliability:
+    status: PASS
+    notes: "try/except por shard (um shard caído não derruba a coleta); _parse_lastmod tolerante a valor inválido; listar_urls_canaltech falha-alto com mensagem clara se config.coleta.canaltech ausente."
+  maintainability:
+    status: PASS
+    notes: "REUSE>ADAPT>CREATE respeitado (extração e schema reusados; só o listing adaptado). Orquestrador fino canaltech.py. Determinístico separado de rede. ruff verde."
+
+recommendations:
+  immediate: []
+  future:
+    - action: "Avaliar filtro de categoria/qualidade para o Canaltech antes do Epic 3 (ver DATA-001)."
+      refs: ["src/coleta/sitemap.py", "src/coleta/canaltech.py"]
+    - action: "AC3 opcional: dedup por título muito similar entre fontes (mesma notícia em dois portais) — não implementado; avaliar near-duplicate (ex.: similaridade de título) se a banca exigir."
+      refs: ["src/coleta/extract.py"]
+    - action: "Rodar o freeze (1.3) + merge Canaltech (1.4) para materializar o corpus multi-fonte antes do Epic 2/3 (ver REQ-002)."
+      refs: ["src/coleta/extract.py", "src/coleta/canaltech.py"]

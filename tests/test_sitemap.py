@@ -13,9 +13,13 @@ import pandas as pd
 
 from src.coleta.sitemap import (
     FONTE,
+    FONTE_CANALTECH,
     construir_dataframe,
+    construir_urls_canaltech,
+    data_corte,
     meses_alvo,
     parse_artigo,
+    parse_categoria_canaltech,
     urls_de_xml,
 )
 
@@ -117,3 +121,60 @@ def test_urls_de_xml_extrai_locs() -> None:
         "https://olhardigital.com.br/2026/06/06/ia/artigo-a/",
         "https://olhardigital.com.br/2026/06/07/ia/artigo-b/",
     ]
+
+
+# ---------------------------------------------------------------------------
+# Canaltech (Story 1.4) — data vem do <lastmod>, categoria do path
+# ---------------------------------------------------------------------------
+CT_ARTIGO = "https://canaltech.com.br/apps/whatsapp-vai-exigir-atualizacao/"
+CT_SECAO = "https://canaltech.com.br/apps/"  # página de seção (não é artigo)
+
+
+def test_parse_categoria_canaltech_extrai_primeiro_segmento() -> None:
+    assert parse_categoria_canaltech(CT_ARTIGO) == "apps"
+
+
+def test_parse_categoria_canaltech_ignora_pagina_de_secao() -> None:
+    assert parse_categoria_canaltech(CT_SECAO) is None
+
+
+def test_data_corte_primeiro_dia_do_mes_mais_antigo() -> None:
+    assert data_corte(4, hoje=date(2026, 6, 11)) == date(2026, 3, 1)
+
+
+def test_data_corte_um_mes() -> None:
+    assert data_corte(1, hoje=date(2026, 6, 11)) == date(2026, 6, 1)
+
+
+def test_data_corte_vira_o_ano() -> None:
+    assert data_corte(4, hoje=date(2026, 2, 10)) == date(2025, 11, 1)
+
+
+def test_construir_urls_canaltech_filtra_janela_e_deriva_data() -> None:
+    registros = [
+        (CT_ARTIGO, "2026-05-20T10:00:00-03:00"),                 # dentro da janela
+        ("https://canaltech.com.br/games/jogo-antigo/", "2024-01-02T08:00:00-03:00"),  # fora
+    ]
+    df = construir_urls_canaltech(registros, corte=date(2026, 3, 1))
+    assert list(df.columns) == ["url", "data", "categoria", "fonte"]
+    assert len(df) == 1
+    assert df["data"].iloc[0] == date(2026, 5, 20)
+    assert df["categoria"].iloc[0] == "apps"
+    assert df["fonte"].iloc[0] == FONTE_CANALTECH
+
+
+def test_construir_urls_canaltech_dedup_e_ignora_secao() -> None:
+    registros = [
+        (CT_ARTIGO, "2026-05-20T10:00:00-03:00"),
+        (CT_ARTIGO, "2026-05-21T10:00:00-03:00"),  # url repetida
+        (CT_SECAO, "2026-05-20T10:00:00-03:00"),   # seção → descartada
+    ]
+    df = construir_urls_canaltech(registros, corte=date(2026, 3, 1))
+    assert len(df) == 1
+    assert df["url"].duplicated().sum() == 0
+
+
+def test_construir_urls_canaltech_lastmod_invalido_descartado() -> None:
+    df = construir_urls_canaltech([(CT_ARTIGO, "")], corte=date(2026, 3, 1))
+    assert df.empty
+    assert list(df.columns) == ["url", "data", "categoria", "fonte"]

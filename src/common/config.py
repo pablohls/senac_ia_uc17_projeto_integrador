@@ -55,11 +55,24 @@ class ExtractParams(BaseModel):
     )
 
 
+class CanaltechParams(BaseModel):
+    """Parâmetros da segunda fonte Canaltech (Story 1.4)."""
+
+    index_url: str = Field(..., description="Sitemap index do Canaltech.")
+    meses: int = Field(4, gt=0, description="Janela histórica em meses (filtra por lastmod).")
+    user_agent: str = Field(
+        "TrendRadar/0.1 (projeto integrador IA; coleta academica)",
+        description="Identificação enviada ao servidor (NFR4).",
+    )
+    rate_limit_s: float = Field(1.0, ge=0, description="Pausa entre requisições, em segundos.")
+
+
 class ColetaParams(BaseModel):
     """Bloco de configuração da fase de coleta."""
 
     sitemap: SitemapParams
     extract: ExtractParams = Field(default_factory=ExtractParams)
+    canaltech: CanaltechParams | None = None
 
 
 class Config(BaseModel):

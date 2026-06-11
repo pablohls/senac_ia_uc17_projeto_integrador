@@ -104,6 +104,30 @@ def montar_corpus(artigos: list[dict]) -> pd.DataFrame:
     return df
 
 
+def mesclar_corpus(corpus_atual: pd.DataFrame | None, novos: pd.DataFrame) -> pd.DataFrame:
+    """Mescla um novo lote (ex.: Canaltech) ao corpus A1, deduplicando por URL.
+
+    Mantém o schema A1 e a primeira ocorrência de cada ``url`` (sem rede). Usado
+    para construir o corpus **multi-fonte** da Story 1.4.
+
+    Args:
+        corpus_atual: corpus existente (A1) ou ``None``/vazio.
+        novos: novo lote no schema A1.
+
+    Returns:
+        DataFrame A1 combinado, sem ``url`` duplicada.
+    """
+    if corpus_atual is None or corpus_atual.empty:
+        combinado = novos.copy()
+    else:
+        combinado = pd.concat([corpus_atual, novos], ignore_index=True)
+    combinado = combinado.drop_duplicates(subset="url", keep="first").reset_index(drop=True)
+    combinado = combinado.reindex(columns=COLUNAS_A1)
+    if not combinado.empty:
+        combinado["fonte"] = combinado["fonte"].astype("category")
+    return combinado
+
+
 # ---------------------------------------------------------------------------
 # Funções de rede — validadas em amostra (NFR4)
 # ---------------------------------------------------------------------------
@@ -169,11 +193,17 @@ def extrair_artigos(urls_df: pd.DataFrame, config: Config) -> pd.DataFrame:
         DataFrame no schema A1, deduplicado e sem textos vazios.
     """
     params = config.coleta.extract
-    rp = (
-        carregar_robots(urls_df.iloc[0]["url"], params.user_agent)
-        if not urls_df.empty
-        else None
-    )
+    # robots.txt cacheado POR HOST: robusto quando o lote mistura fontes
+    # (ex.: corpus multi-fonte da Story 1.4). Degradação graciosa: host sem
+    # robots acessível → assume permitido.
+    robots_cache: dict[str, urllib.robotparser.RobotFileParser | None] = {}
+
+    def _permitido(u: str) -> bool:
+        host = urlsplit(u).netloc
+        if host not in robots_cache:
+            robots_cache[host] = carregar_robots(u, params.user_agent)
+        rp = robots_cache[host]
+        return rp is None or rp.can_fetch(params.user_agent, u)
 
     artigos: list[dict] = []
     pulados = 0
@@ -181,7 +211,7 @@ def extrair_artigos(urls_df: pd.DataFrame, config: Config) -> pd.DataFrame:
         if params.limite is not None and i >= params.limite:
             break
         url = row.url
-        if rp is not None and not rp.can_fetch(params.user_agent, url):
+        if not _permitido(url):
             logger.warning("robots.txt bloqueia: %s", url)
             pulados += 1
             continue
