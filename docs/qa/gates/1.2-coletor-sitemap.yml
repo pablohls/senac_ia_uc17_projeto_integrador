@@ -1,0 +1,49 @@
+schema: 1
+story: "1.2"
+story_title: "Coletor de sitemap (URLs datadas)"
+gate: PASS
+status_reason: "Todos os 4 AC atendidos e verificados de forma independente (13/13 testes determinísticos, ruff verde, run real 7.064 URLs > 4.000). Notas são recomendações futuras não-bloqueantes."
+reviewer: "Quinn (Test Architect)"
+updated: "2026-06-11T00:00:00Z"
+
+top_issues: []
+waiver: { active: false }
+
+quality_score: 95
+expires: "2026-06-25T00:00:00Z"
+
+evidence:
+  tests_reviewed: 13
+  risks_identified: 2
+  trace:
+    ac_covered: [1, 2, 3, 4]
+    ac_gaps: []
+    notes:
+      - "AC1: seleção de meses coberta por meses_alvo (unit); leitura de rede validada manualmente (9 sitemaps mar-jun/2026, paginação _1/_2/_3 tratada)."
+      - "AC2: parse_artigo (4 testes: válida, sem barra, institucional, data impossível) + dedup por URL."
+      - "AC3: filtro por categoria (unit) + persistência via src/common/io.py (salvar_parquet)."
+      - "AC4: run real produziu 7.064 URLs datadas (> 4.000) cobrindo mar-jun/2026, 17 categorias, 0 duplicatas, 0 nulos."
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: "User-Agent configurável; requests com timeout (sem hang infinito); sem secrets/credenciais hardcoded; nenhum input de usuário não-sanitizado. Parser XML poderia endurecer contra XXE (resolve_entities=False) — defesa em profundidade, não-bloqueante."
+  performance:
+    status: PASS
+    notes: "Rate-limit ~1 req/s (rate_limit_s) entre sitemaps mensais; poucas requisições (index + ~9 mapas). Núcleo determinístico roda em <1s."
+  reliability:
+    status: PASS
+    notes: "try/except por sitemap mensal — um mês indisponível não derruba a coleta; urls_de_xml tolerante a XML malformado (recover=True); falha no index (sem o qual nada prossegue) propaga corretamente."
+  maintainability:
+    status: PASS
+    notes: "Separação clara determinístico/rede (facilita teste); type hints + docstrings; config-driven via pydantic (SitemapParams), zero número mágico; ruff verde. PoC backfill_olhardigital.py mantido intocado."
+
+recommendations:
+  immediate: []
+  future:
+    - action: "Adicionar teste unitário dedicado para src/common/io.py (salvar_parquet/ler_parquet round-trip) — hoje coberto indiretamente pelo smoke test e pelo run real."
+      refs: ["src/common/io.py", "tests/smoke_test.py"]
+    - action: "Endurecer o parser XML contra entidades externas (XXE) com etree.XMLParser(resolve_entities=False, no_network=True) — defesa em profundidade ao parsear XML de fonte externa."
+      refs: ["src/coleta/sitemap.py"]
+    - action: "Característica conhecida (não-bug): ~3,3% das URLs têm data de publicação fora da janela (artigos antigos re-editados que reaparecem nos mapas mensais, particionados por modificação). Se a banca exigir corpus estritamente limitado à janela, adicionar filtro opcional por data em config — fora do escopo desta story (No Invention)."
+      refs: ["src/coleta/sitemap.py", "docs/stories/1.2.coletor-sitemap.md"]
