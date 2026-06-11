@@ -41,10 +41,25 @@ class SitemapParams(BaseModel):
     rate_limit_s: float = Field(1.0, ge=0, description="Pausa entre requisições, em segundos.")
 
 
+class ExtractParams(BaseModel):
+    """Parâmetros da extração de texto (Story 1.3 — dataset congelado A1)."""
+
+    user_agent: str = Field(
+        "TrendRadar/0.1 (projeto integrador IA; coleta academica)",
+        description="Identificação enviada ao servidor (NFR4).",
+    )
+    rate_limit_s: float = Field(1.0, ge=0, description="Pausa entre downloads, em segundos.")
+    timeout_s: int = Field(30, gt=0, description="Tempo máximo por requisição, em segundos.")
+    limite: int | None = Field(
+        None, description="Máximo de artigos a extrair (amostra/teste); None = todos."
+    )
+
+
 class ColetaParams(BaseModel):
     """Bloco de configuração da fase de coleta."""
 
     sitemap: SitemapParams
+    extract: ExtractParams = Field(default_factory=ExtractParams)
 
 
 class Config(BaseModel):

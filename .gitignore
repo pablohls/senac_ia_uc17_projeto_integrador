@@ -41,11 +41,15 @@ Thumbs.db
 .kimi/
 .github/
 
-# Dados (reprodutíveis via src/coleta) — não versionar o corpus,
+# Dados intermediários (reprodutíveis via src/coleta) — não versionar,
 # mas manter a estrutura de pastas no git via .gitkeep
 dados/**
 !dados/**/
 !dados/**/.gitkeep
+# Exceção: o corpus CONGELADO (artefato A1) é versionado via Git LFS para o
+# demo offline reprodutível (Story 1.3 / AC4 + .gitattributes). Diferente dos
+# inputs intermediários (urls.parquet), o corpus é o "dataset congelado".
+!dados/raw/corpus.parquet
 
 # Python
 __pycache__/

@@ -1,0 +1,55 @@
+schema: 1
+story: "1.3"
+story_title: "Extração de texto e dataset congelado (A1)"
+gate: CONCERNS
+status_reason: "AC1-AC3 atendidos e verificados (11/11 testes, ruff verde, amostra real de 30 artigos íntegra). AC4 com mecanismo + exceção LFS prontos, mas o corpus A1 completo (7.064) ainda não foi congelado/commitado — passo manual aprovado pelo owner, porém pré-requisito da Story 2.1."
+reviewer: "Quinn (Test Architect)"
+updated: "2026-06-11T00:00:00Z"
+
+top_issues:
+  - id: "REQ-001"
+    severity: medium
+    finding: "Corpus A1 congelado (dados/raw/corpus.parquet com os 7.064 artigos) ainda não foi gerado nem commitado. O pipeline foi validado apenas em amostra (30 artigos)."
+    suggested_action: "Rodar o freeze completo (`poetry run python -m src.coleta.extract`, ~2h a 1 req/s) e commitar via LFS ANTES de iniciar a Story 2.1 (PLN consome A1). Decisão de deferir é do owner e está documentada."
+
+waiver: { active: false }
+
+quality_score: 88
+expires: "2026-06-25T00:00:00Z"
+
+evidence:
+  tests_reviewed: 11
+  risks_identified: 3
+  trace:
+    ac_covered: [1, 2, 3]
+    ac_partial: [4]
+    ac_gaps: []
+    notes:
+      - "AC1: trafilatura + rate-limit + robots.txt (carregar_robots/can_fetch); validado em amostra real de 30 artigos."
+      - "AC2: try/except por artigo (falha → log + pula, sem abortar o lote) + contador de pulados."
+      - "AC3: doc_id estável (4 testes) + montar_corpus (schema A1, dedup por url, descarte de texto vazio — 7 testes). Amostra: 0 dup, 0 texto vazio, doc_id estável."
+      - "AC4: mecanismo de freeze + exceção !dados/raw/corpus.parquet no .gitignore + LFS confirmados (git add --dry-run / check-attr). Artefato completo deferido (manual, owner)."
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: "User-Agent configurável; requests com timeout; sem secrets; respeita robots.txt. trafilatura faz o parsing (não há lxml cru aqui). doc_id = SHA-1(url)[:16] (64 bits) — colisão desprezível para ~7k docs."
+  performance:
+    status: PASS
+    notes: "Rate-limit ~1 req/s (NFR4) — freeze completo ~2h por design (ético, não gargalo de código). Núcleo determinístico <1s. limite opcional p/ amostra."
+  reliability:
+    status: PASS
+    notes: "AC2: uma extração falha não derruba o lote; robots ausente degrada graciosamente (assume permitido); run_manifest.json com merge incremental (não sobrescreve estágios)."
+  maintainability:
+    status: PASS
+    notes: "Separação determinístico/rede (testável); doc_id imutável documentado; config-driven (ExtractParams); ruff verde; reuso de baixar() da Story 1.2."
+
+recommendations:
+  immediate:
+    - action: "Executar o freeze completo do corpus A1 e commitar via LFS antes da Story 2.1 (ver REQ-001)."
+      refs: ["src/coleta/extract.py", "dados/raw/corpus.parquet"]
+  future:
+    - action: "Adicionar teste unitário dedicado para io.atualizar_manifest (read-merge-write entre estágios) — hoje só validado por smoke. É contrato transversal usado por todas as fases."
+      refs: ["src/common/io.py", "tests/test_extract.py"]
+    - action: "carregar_robots() usa o host da primeira URL. Correto para a fonte única da 1.3 (olhar_digital), mas a Story 1.4 (canaltech) terá múltiplos hosts — carregar/cachear robots por host."
+      refs: ["src/coleta/extract.py"]
