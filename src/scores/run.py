@@ -16,6 +16,8 @@ from src.pln.clean import aplicar_limpeza_corpus
 from src.pln.embed import embed_corpus
 from src.modelagem.topics import modelar_topicos
 from src.modelagem.doc_topics import criar_doc_topics
+from src.scores.trend_score import trend_score_l1
+from src.scores.forecast import calcular_surpresa_l2, salvar_alertas
 
 def executar_limpeza():
     """Executa a limpeza do corpus."""
@@ -100,6 +102,40 @@ def main():
     print("PIPELINE DA FASE 2 CONCLUÍDA COM SUCESSO!")
     print(f"Tempo total: {fim_total - inicio_total:.2f} segundos")
     print("=" * 60)
+
+     # Step 4: Story 3.2 — Trend Score Camada 1
+    logger.info("\n--- Story 3.2: Trend Score Camada 1 (estatístico) ---")
+    try:
+        scores = trend_score_l1(series, config.trend_score)
+        logger.info(f"  ✓ Scores calculados: {len(scores)} tópicos")
+        
+        # Log top 5
+        top_5 = scores.head(5)
+        logger.info("  Top 5 tendências:")
+        for _, row in top_5.iterrows():
+            badge = "[NOVO]" if row["is_new"] else ""
+            logger.info(f"    - Tópico {row['topic_id']}: score={row['trend_score']:.2f} {badge}")
+
+        # Persiste
+        output_path = salvar_parquet(scores, "dados/scores/scores.parquet")
+        logger.info(f"  ✓ Persistido: {output_path}")
+
+    except Exception as e:
+        logger.error(f"  ✗ Erro na Story 3.2: {e}", exc_info=True)
+        raise
+    
+    # Step 5: Story 3.3 — Trend Score Camada 2 (LSTM + Surpresa)
+    logger.info("\n--- Story 3.3: Trend Score Camada 2 (LSTM + Surpresa) ---")
+    try:
+        scores_l2, alerts = calcular_surpresa_l2(series, scores, config.trend_score)
+        if alerts:
+            logger.info(f"  ⚠ {len(alerts)} anomalias detectadas!")
+            salvar_alertas(alerts)
+        
+        output_path = salvar_parquet(scores_l2, "dados/scores/scores.parquet")
+        logger.info(f"  ✓ Persistido (L1+L2): {output_path}")
+    except Exception as e:
+        logger.warning(f"  ⚠ Camada 2 falhou (degradação graciosa): {e}")
 
 if __name__ == "__main__":
     main()
