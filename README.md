@@ -116,7 +116,7 @@ git merge minha-feature         # (estando na main) traz o trabalho do branch pa
 | `git clone <url>` | Baixa o repositório pela primeira vez |
 | `git pull` | Atualiza sua cópia com o que está no GitHub |
 | `git status` | Mostra arquivos alterados / pendentes |
-| `git add <arquivo>` | Prepara um arquivo para o commit (`git add .` = todos) |
+| `ggit p<arquivo>` | Prepara um arquivo para o commit (`git add .` = todos) |
 | `git commit -m "msg"` | Salva as mudanças no histórico local |
 | `git push` | Envia seus commits para o GitHub |
 | `git checkout -b <nome>` | Cria e entra em um branch novo |

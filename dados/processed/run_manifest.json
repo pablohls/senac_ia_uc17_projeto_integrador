@@ -1,11 +1,11 @@
 {
-  "data": "2026-06-16T20:45:02.407677",
+  "data": "2026-06-17T21:06:11.962465",
   "modelo": "paraphrase-multilingual-mpnet-base-v2",
   "dispositivo": "cuda",
   "batch_size": 64,
   "total_artigos": 50,
   "dimensao_embedding": 768,
-  "tempo_segundos": 0.2938978672027588,
+  "tempo_segundos": 0.30071449279785156,
   "tamanho_mb": 0.146484375,
   "arquivo_embeddings": "dados/processed/embeddings.npy",
   "arquivo_index": "dados/processed/embeddings_index.parquet"
