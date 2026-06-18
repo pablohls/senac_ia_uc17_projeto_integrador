@@ -46,6 +46,6 @@ def aplicar_limpeza_corpus(df):
     df = df.copy()
     df['texto_limpo'] = df['texto'].apply(limpar_texto)
     df_limpo = df.dropna(subset=['texto_limpo']).copy()
-    resultado = df_limpo[['doc_id', 'texto_limpo']]
     
-    return resultado
+    # CORREÇÃO: mantém todas as colunas originais
+    return df_limpo
