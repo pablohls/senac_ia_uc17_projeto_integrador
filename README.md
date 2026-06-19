@@ -77,8 +77,6 @@ Python 3.12 · Poetry · PyTorch (CUDA 12.4) · Sentence-Transformers · BERTopi
 git clone https://github.com/pablohls/senac_ia_uc17_projeto_integrador.git
 cd senac_ia_uc17_projeto_integrador
 
-git lfs install          # ativa o Git LFS (necessário p/ arquivos grandes: .parquet, .npy)
-
 # Se identifique (aparece nos seus commits) — use seu nome e e-mail
 git config --global user.name  "Seu Nome"
 git config --global user.email "voce@email.com"
