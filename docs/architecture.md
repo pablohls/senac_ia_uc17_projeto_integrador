@@ -102,7 +102,7 @@ Fonte única da verdade tecnológica — todo o `pyproject.toml` deriva daqui.
 | Grafo | NetworkX | 3.x | Co-ocorrência de termos | FR10 |
 | Testes | pytest | 8.x | Unitários (parser, score, séries) | NFR5 |
 | Lint/format | ruff | 0.6 | Lint + format | Um só tool; padroniza 4 devs |
-| Versionamento de dados | Git LFS (ou DVC) | — | Dataset congelado pesado | Reprodutibilidade do demo |
+| Versionamento de dados | Git (versionamento direto) | — | Dataset congelado pesado | Reprodutibilidade do demo |
 | CI/CD · Auth · API · CDN | **N/A** | — | — | Produto offline read-only |
 
 ### Environment com Poetry (PyTorch + CUDA)
@@ -292,7 +292,7 @@ sequenceDiagram
 
 ## Database Schema (Dataset & Artefatos)
 
-Não há SGBD. O "schema" é o conjunto de artefatos Parquet/NPY/JSON descrito em **Contratos de Artefatos**. Formato primário: **Parquet** (colunar, tipado, via pyarrow) para tabelas; **NPY** (float32) para embeddings densos; **JSON** para alertas/manifesto. Versionamento via Git LFS (`*.parquet`, `*.npy`).
+Não há SGBD. O "schema" é o conjunto de artefatos Parquet/NPY/JSON descrito em **Contratos de Artefatos**. Formato primário: **Parquet** (colunar, tipado, via pyarrow) para tabelas; **NPY** (float32) para embeddings densos; **JSON** para alertas/manifesto. Versionamento direto no Git (`*.parquet`, `*.npy`).
 
 ---
 
@@ -309,7 +309,7 @@ trendradar/
 │   ├── modelagem/               # topics.py (BERTopic), run.py
 │   ├── scores/                  # series.py, trend_score.py (L1), forecast.py (L2 LSTM+baseline), run.py
 │   └── dashboard/               # app.py, panels.py, graph.py
-├── dados/                       # ARTEFATOS (Git LFS) — fonte da verdade
+├── dados/                       # ARTEFATOS (versionados no Git) — fonte da verdade
 │   ├── raw/                     # corpus.parquet
 │   ├── processed/               # corpus_clean.parquet, embeddings.npy, embeddings_index.parquet
 │   ├── topics/                  # doc_topics, topic_terms, topic_info
@@ -321,8 +321,8 @@ trendradar/
 ├── run_all.py                   # orquestra C1→C2→C3→C4
 ├── pyproject.toml               # deps, scripts, config de tools (ruff, pytest)
 ├── poetry.lock                  # versões + hashes travados (commitado)
-├── .gitignore                   # ignora __pycache__, .venv, dados não-LFS
-├── .gitattributes               # Git LFS p/ *.parquet *.npy
+├── .gitignore                   # ignora __pycache__, .venv, caches
+├── .gitattributes               # normalização de fim de linha (eol=lf)
 └── README.md                    # setup + reprodução do demo offline
 ```
 
@@ -332,12 +332,11 @@ trendradar/
 
 ## Development Workflow
 
-**Prerequisites:** Python 3.12, Poetry 1.8+, Git + Git LFS, driver NVIDIA (CUDA 12.4) ou modo CPU.
+**Prerequisites:** Python 3.12, Poetry 1.8+, Git, driver NVIDIA (CUDA 12.4) ou modo CPU.
 
 ```bash
 # Setup inicial (uma vez)
 git clone <repo> && cd trendradar
-git lfs install && git lfs pull
 poetry install
 
 # Fases isoladas (trabalho paralelo dos 4)
@@ -440,7 +439,7 @@ N/A para produção (sem deploy). Observabilidade local = logging estruturado + 
 | 8. Dependency & Integration | 🟢 100% | Deps mapeadas; fallbacks (MiniLM/CPU/cu121); build order claro |
 | 9. AI Agent Suitability | 🟢 100% | Componentes bem dimensionados, interfaces explícitas, pitfalls documentados |
 
-**Top riscos:** (1) atrito GPU/CUDA no Poetry → source explícito + fallback; (2) séries curtas → Camada 1 + baseline; (3) desalinhamento embeddings → `embeddings_index` + `doc_id` imutável; (4) cota Git LFS → `--rebuild`; (5) qualidade clustering → gate manual ≥70%.
+**Top riscos:** (1) atrito GPU/CUDA no Poetry → source explícito + fallback; (2) séries curtas → Camada 1 + baseline; (3) desalinhamento embeddings → `embeddings_index` + `doc_id` imutável; (4) repo pesado por artefatos binários no histórico → `--rebuild` + artefatos grandes no `.gitignore`; (5) qualidade clustering → gate manual ≥70%.
 
 **Should-fix:** confirmar a versão CUDA do driver da GPU da equipe antes do `poetry install`.
 
@@ -457,4 +456,4 @@ Quebrar os 4 épicos do PRD em stories prontas, respeitando os **contratos de ar
 Implementar na ordem dos contratos: `src/common` (io/config/logging) primeiro, depois C1→C2→C3→C4→C5. Camada 1 do Trend Score antes da Camada 2. Seguir os Coding Standards (contrato de artefato é lei, `doc_id` imutável, config centralizada).
 
 ### Para @data-engineer (Dara) — opcional
-Se a equipe quiser, revisar os schemas dos artefatos Parquet e a estratégia de particionamento/versionamento (Git LFS vs DVC).
+Se a equipe quiser, revisar os schemas dos artefatos Parquet e a estratégia de particionamento/versionamento (versionamento direto no Git vs DVC).

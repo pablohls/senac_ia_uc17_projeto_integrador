@@ -1,7 +1,2 @@
-# Git LFS — artefatos tabulares/binários pesados gerados entre as fases.
-# Mantém o repositório leve: o conteúdo grande vai para o LFS, não para o histórico.
-*.parquet filter=lfs diff=lfs merge=lfs -text
-*.npy     filter=lfs diff=lfs merge=lfs -text
-
 # Normalização de fim de linha (evita ruído entre Windows/Linux da equipe).
 * text=auto eol=lf
