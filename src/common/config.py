@@ -2,78 +2,46 @@
 Configurações do projeto TrendRadar
 """
 
-class Config:
-    # Modelo de embeddings para português
-    embedding_model = "paraphrase-multilingual-mpnet-base-v2"
-    
-    # Tamanho do lote para processamento em GPU
-    batch_size = 64
-    
-    # Pastas dos dados
-    dados_raw = "dados/raw"
-    dados_processed = "dados/processed"
-
-"""
-Configurações do projeto TrendRadar baseadas em Pydantic.
-"""
-
-from __future__ import annotations
-from pathlib import Path
-from typing import List, Optional
 import yaml
+from pathlib import Path
 from pydantic import BaseModel, Field
 
-class SitemapConfig(BaseModel):
-    index_url: str
-    meses: int
-    categorias: List[str] = []
-    user_agent: str
-    rate_limit_s: float
+class EmbeddingConfig(BaseModel):
+    model_name: str = "paraphrase-multilingual-mpnet-base-v2"
+    batch_size: int = 64
 
-class ExtractConfig(BaseModel):
-    user_agent: str
-    rate_limit_s: float
-    timeout_s: int
-    limite: Optional[int] = None
+class ClusteringConfig(BaseModel):
+    min_topic_size: int = 2
+    n_neighbors: int = 15
+    min_cluster_size: int = 2
+    cluster_selection_epsilon: float = 0.1
+    random_state: int = 42
 
-class CanaltechConfig(BaseModel):
-    index_url: str
-    meses: int
-    user_agent: str
-    rate_limit_s: float
-
-class ColetaConfig(BaseModel):
-    sitemap: SitemapConfig
-    extract: ExtractConfig
-    canaltech: CanaltechConfig
-
-class TrendScoreParams(BaseModel):
-    w: int = 7
-    alpha: float = 1.0
-    H: int = 60
-    lambda_burst: float = 1.0
-    n_min: int = 5
-    k: float = 2.5
-    epsilon: float = Field(default=1e-6, alias="eps")
-
-    class Config:
-        populate_by_name = True
+class LimpezaConfig(BaseModel):
+    min_text_length: int = 10
 
 class Config(BaseModel):
-    fontes: List[str]
-    coleta: ColetaConfig
-    embedding_model: str
-    trend_score: TrendScoreParams
+    embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
+    clustering: ClusteringConfig = Field(default_factory=ClusteringConfig)
+    limpeza: LimpezaConfig = Field(default_factory=LimpezaConfig)
+    dados_raw: str = "dados/raw"
+    dados_processed: str = "dados/processed"
+    dados_topics: str = "dados/topics"
 
-def load_config(path: str | Path = "config/config.yaml") -> Config:
-    """Carrega a configuração do arquivo YAML e valida com Pydantic."""
-    caminho = Path(path)
-    if not caminho.exists():
-        caminho = Path(__file__).parents[2] / "config" / "config.yaml"
+def carregar_config(caminho=None):
+    if caminho is None:
+        caminho = Path("config/config.yaml")
     
-    with open(caminho, encoding="utf-8") as f:
+    if not caminho.exists():
+        return Config()
+    
+    with open(caminho) as f:
         dados = yaml.safe_load(f)
-        if "trend_score" in dados and "eps" in dados["trend_score"]:
-            dados["trend_score"]["epsilon"] = dados["trend_score"].pop("eps")
-            
-        return Config(**dados)
+    
+    return Config(**dados)
+
+# Instância global
+config = carregar_config()
+
+# Para compatibilidade com código antigo
+Config = Config

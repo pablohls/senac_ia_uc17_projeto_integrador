@@ -1,5 +1,8 @@
-import nltk
-from nltk.corpus import stopwords
+"""
+Módulo para clustering e nomeação de tópicos usando BERTopic.
+Agrupa notícias por assunto e extrai palavras que caracterizam cada grupo.
+"""
+
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -9,11 +12,24 @@ from hdbscan import HDBSCAN
 from sklearn.feature_extraction.text import CountVectorizer
 import time
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from src.common.io import ler_parquet, salvar_parquet
 
 def configurar_modelo(min_topic_size=2, n_neighbors=15, min_cluster_size=2):
+    """
+    Configura o BERTopic com parâmetros definidos.
+    
+    Argumentos:
+        min_topic_size: Tamanho mínimo para formar um tópico
+        n_neighbors: Vizinhos considerados no UMAP
+        min_cluster_size: Tamanho mínimo do cluster no HDBSCAN
+        
+    Retorna:
+        Modelo BERTopic configurado
+    """
+    
+    # UMAP reduz a dimensão dos embeddings
     umap_model = UMAP(
         n_neighbors=n_neighbors,
         n_components=5,
@@ -22,6 +38,7 @@ def configurar_modelo(min_topic_size=2, n_neighbors=15, min_cluster_size=2):
         random_state=42
     )
     
+    # HDBSCAN encontra os grupos
     hdbscan_model = HDBSCAN(
         min_cluster_size=min_cluster_size,
         metric='euclidean',
@@ -29,14 +46,27 @@ def configurar_modelo(min_topic_size=2, n_neighbors=15, min_cluster_size=2):
         prediction_data=True
     )
     
+    # CORREÇÃO: stopwords em português (F2)
+    try:
+        import nltk
+        from nltk.corpus import stopwords
+        nltk.download('stopwords', quiet=True)
+        stopwords_pt = stopwords.words('portuguese')
+        print(f"   Stopwords PT carregadas: {len(stopwords_pt)} palavras")
+    except:
+        print("   Aviso: NLTK não disponível, usando stopwords padrão")
+        stopwords_pt = []
+    
+    # CountVectorizer extrai palavras dos textos
     vectorizer_model = CountVectorizer(
-        stop_words="english",
+        stop_words=stopwords_pt,
         min_df=1,
         ngram_range=(1, 2)
     )
     
+    # BERTopic combina tudo
     model = BERTopic(
-        embedding_model=None,
+        embedding_model=None,  # Usamos embeddings prontos
         umap_model=umap_model,
         hdbscan_model=hdbscan_model,
         vectorizer_model=vectorizer_model,
@@ -49,7 +79,18 @@ def configurar_modelo(min_topic_size=2, n_neighbors=15, min_cluster_size=2):
 
 def modelar_topicos(caminho_embeddings=None, caminho_index=None, caminho_corpus=None, 
                     caminho_saida=None, min_topic_size=2):
+    """
+    Função principal que executa o clustering.
     
+    Argumentos:
+        caminho_embeddings: Caminho do arquivo embeddings.npy
+        caminho_index: Caminho do embeddings_index.parquet
+        caminho_corpus: Caminho do corpus_clean.parquet
+        caminho_saida: Pasta para salvar os resultados
+        min_topic_size: Tamanho mínimo do tópico
+    """
+    
+    # Define caminhos padrão
     if caminho_embeddings is None:
         caminho_embeddings = Path("dados/processed/embeddings.npy")
     
@@ -59,46 +100,57 @@ def modelar_topicos(caminho_embeddings=None, caminho_index=None, caminho_corpus=
     if caminho_corpus is None:
         caminho_corpus = Path("dados/processed/corpus_clean.parquet")
     
+    # CORREÇÃO: salvar em dados/topics/ (F7)
     if caminho_saida is None:
-        caminho_saida = Path("dados/processed")
+        caminho_saida = Path("dados/topics")
     
     print("=" * 60)
-    print("INICIANDO MODELAGEM DE TOPICOS")
+    print("INICIANDO MODELAGEM DE TÓPICOS")
     print("=" * 60)
     
+    # Passo 1: Carregar dados
     print("\n1. Carregando dados...")
     embeddings = np.load(caminho_embeddings)
     print(f"   Embeddings: {embeddings.shape}")
     
     df_index = ler_parquet(caminho_index)
-    print(f"   Indice: {len(df_index)} linhas")
+    print(f"   Índice: {len(df_index)} linhas")
     
     df_corpus = ler_parquet(caminho_corpus)
     print(f"   Corpus: {len(df_corpus)} linhas")
     
-    assert len(df_index) == len(df_corpus) == embeddings.shape[0]
+    # Verifica alinhamento
+    assert len(df_index) == len(df_corpus) == embeddings.shape[0], \
+        "Erro: dados não estão alinhados!"
     
+    # Passo 2: Configurar BERTopic
     print("\n2. Configurando BERTopic...")
     model = configurar_modelo(min_topic_size=min_topic_size)
     
+    # Passo 3: Executar clustering
     print("\n3. Executando clustering...")
     inicio = time.time()
     
+    # Extrai textos na mesma ordem dos embeddings
     textos = df_corpus['texto_limpo'].tolist()
+    
+    # fit_transform executa o clustering e atribui tópicos
     topicos, probabilities = model.fit_transform(textos, embeddings=embeddings)
     
     fim = time.time()
     tempo_total = fim - inicio
-    print(f"   Concluido em {tempo_total:.2f} segundos")
+    print(f"   Concluído em {tempo_total:.2f} segundos")
     
-    print("\n4. Extraindo informacoes dos topicos...")
+    # Passo 4: Extrair informações dos tópicos
+    print("\n4. Extraindo informações dos tópicos...")
     topic_info = model.get_topic_info()
-    print(f"   {len(topic_info)} topicos encontrados")
+    print(f"   {len(topic_info)} tópicos encontrados")
     
     n_topicos = len(topic_info[topic_info['Topic'] != -1])
     n_outliers = len(topic_info[topic_info['Topic'] == -1])
-    print(f"   Topicoss: {n_topicos}, Outliers: {n_outliers}")
+    print(f"   Tópicos: {n_topicos}, Outliers: {n_outliers}")
     
+    # Extrai termos de cada tópico
     topic_terms_list = []
     for topic_id in topic_info['Topic'].values:
         termos = model.get_topic(topic_id)
@@ -112,38 +164,86 @@ def modelar_topicos(caminho_embeddings=None, caminho_index=None, caminho_corpus=
                 })
     
     df_topic_terms = pd.DataFrame(topic_terms_list)
-    print(f"   {len(df_topic_terms)} termos extraidos")
+    print(f"   {len(df_topic_terms)} termos extraídos")
     
+    # Passo 5: Adicionar metadados
     print("\n5. Adicionando metadados...")
-    from datetime import timedelta
-    hoje = datetime.now()
-    topic_info['first_seen_date'] = hoje - timedelta(days=7)
-    topic_info['last_seen_date'] = hoje
     
-    topic_info['label'] = topic_info.apply(
-        lambda row: model.get_topic(row['Topic'])[0][0] if row['Topic'] != -1 else "Outliers",
-        axis=1
+    # CORREÇÃO: datas first_seen/last_seen a partir dos documentos reais (F6)
+    df_doc_topics = pd.DataFrame({
+        'doc_id': df_corpus['doc_id'].values,
+        'topic_id': topicos
+    })
+    
+    # Juntar com as datas do corpus
+    df_com_datas = df_doc_topics.merge(
+        df_corpus[['doc_id', 'data']], 
+        on='doc_id'
     )
     
+    # Calcular first_seen (min) e last_seen (max) por tópico
+    datas_por_topico = df_com_datas.groupby('topic_id')['data'].agg(['min', 'max'])
+    
+    # CORREÇÃO: label com top 3 termos (F11)
+    def criar_label(topic_id, model):
+        if topic_id == -1:
+            return "Outliers"
+        termos = model.get_topic(topic_id)[:3]
+        return " ".join([t[0] for t in termos])
+    
+    # CORREÇÃO: schema A3 (F4)
+    topic_info = topic_info.rename(columns={
+        'Topic': 'topic_id',
+        'Count': 'size'
+    })
+    
+    # Adicionar label
+    topic_info['label'] = topic_info['topic_id'].apply(
+        lambda tid: criar_label(tid, model)
+    )
+    
+    # Adicionar datas
+    topic_info['first_seen_date'] = topic_info['topic_id'].map(datas_por_topico['min'])
+    topic_info['last_seen_date'] = topic_info['topic_id'].map(datas_por_topico['max'])
+    
+    # Para outliers (-1), usar a data mais antiga e mais nova
+    if -1 in topic_info['topic_id'].values:
+        topic_info.loc[topic_info['topic_id'] == -1, 'first_seen_date'] = datas_por_topico['min'].min()
+        topic_info.loc[topic_info['topic_id'] == -1, 'last_seen_date'] = datas_por_topico['max'].max()
+    
+    # Selecionar apenas as colunas do contrato A3
+    topic_info = topic_info[['topic_id', 'label', 'size', 
+                             'first_seen_date', 'last_seen_date']]
+    
+    print(f"   {len(topic_info)} tópicos no schema A3")
+    
+    # Passo 6: Salvar resultados
     print("\n6. Salvando resultados...")
     
+    # Criar pasta se não existir
+    caminho_saida.mkdir(parents=True, exist_ok=True)
+    
+    # Salvar topic_info
     caminho_topic_info = caminho_saida / "topic_info.parquet"
     salvar_parquet(topic_info, caminho_topic_info)
     print(f"   Topic info: {caminho_topic_info}")
     
+    # Salvar topic_terms
     caminho_topic_terms = caminho_saida / "topic_terms.parquet"
     salvar_parquet(df_topic_terms, caminho_topic_terms)
     print(f"   Topic terms: {caminho_topic_terms}")
     
-    df_doc_topics = pd.DataFrame({
+    # Salvar doc_topics (tópico de cada documento)
+    df_doc_topics_final = pd.DataFrame({
         'doc_id': df_corpus['doc_id'].values,
         'topic_id': topicos,
         'probabilidade': probabilities.max(axis=1) if probabilities is not None else 0
     })
     caminho_doc_topics = caminho_saida / "doc_topics.parquet"
-    salvar_parquet(df_doc_topics, caminho_doc_topics)
+    salvar_parquet(df_doc_topics_final, caminho_doc_topics)
     print(f"   Doc topics: {caminho_doc_topics}")
     
+    # Salvar manifesto
     manifest = {
         "data": datetime.now().isoformat(),
         "min_topic_size": min_topic_size,
@@ -161,19 +261,21 @@ def modelar_topicos(caminho_embeddings=None, caminho_index=None, caminho_corpus=
     print(f"   Manifesto: {caminho_manifest}")
     
     print("\n" + "=" * 60)
-    print("MODELAGEM DE TOPICOS CONCLUIDA!")
+    print("MODELAGEM DE TÓPICOS CONCLUÍDA!")
     print("=" * 60)
     
-    print("\nResumo dos topicos:")
-    for topic_id in topic_info['Topic'].values:
+    # Mostra resumo dos tópicos
+    print("\nResumo dos tópicos:")
+    for topic_id in topic_info['topic_id'].values:
         if topic_id != -1:
             termos = model.get_topic(topic_id)[:5]
             nomes = [t[0] for t in termos]
-            print(f"   Topico {topic_id}: {', '.join(nomes)}")
+            print(f"   Tópico {topic_id}: {', '.join(nomes)}")
     
     return model, topic_info, df_topic_terms
 
 def main():
+    """Ponto de entrada do script."""
     modelar_topicos()
 
 if __name__ == "__main__":
