@@ -1,0 +1,41 @@
+{
+  "data_execucao": "2026-06-19T18:26:39.664661",
+  "periodo_inicio": "2026-06-13T00:00:00",
+  "periodo_fim": "2026-06-15T00:00:00",
+  "total_topicos": 8,
+  "topicos_emergentes": 8,
+  "resumo_tendencias": {
+    "alta_forte": 2,
+    "alta_moderada": 0,
+    "estavel": 6,
+    "baixa_moderada": 0,
+    "baixa_forte": 0
+  },
+  "top_tendencias": [
+    {
+      "label": "em",
+      "variacao_percentual": 500.0,
+      "classificacao": "Alta forte"
+    },
+    {
+      "label": "que",
+      "variacao_percentual": 500.0,
+      "classificacao": "Alta forte"
+    },
+    {
+      "label": "com",
+      "variacao_percentual": 0.0,
+      "classificacao": "Est\u00e1vel"
+    },
+    {
+      "label": "Outliers",
+      "variacao_percentual": 0.0,
+      "classificacao": "Est\u00e1vel"
+    },
+    {
+      "label": "da",
+      "variacao_percentual": 0.0,
+      "classificacao": "Est\u00e1vel"
+    }
+  ]
+}
