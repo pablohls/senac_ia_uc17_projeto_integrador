@@ -1,0 +1,57 @@
+{
+  "data_execucao": "2026-06-17T21:29:57.391620",
+  "total_documentos": 50,
+  "periodo_inicio": "2026-06-13T00:00:00",
+  "periodo_fim": "2026-06-15T00:00:00",
+  "total_dias": 3,
+  "topicos": [
+    {
+      "topic_id": -1,
+      "label": "Outliers",
+      "total": 4,
+      "media_diaria": 1.33
+    },
+    {
+      "topic_id": 0,
+      "label": "com",
+      "total": 8,
+      "media_diaria": 2.67
+    },
+    {
+      "topic_id": 1,
+      "label": "em",
+      "total": 8,
+      "media_diaria": 2.67
+    },
+    {
+      "topic_id": 2,
+      "label": "da",
+      "total": 7,
+      "media_diaria": 2.33
+    },
+    {
+      "topic_id": 3,
+      "label": "com",
+      "total": 7,
+      "media_diaria": 2.33
+    },
+    {
+      "topic_id": 4,
+      "label": "que",
+      "total": 7,
+      "media_diaria": 2.33
+    },
+    {
+      "topic_id": 5,
+      "label": "em",
+      "total": 5,
+      "media_diaria": 1.67
+    },
+    {
+      "topic_id": 6,
+      "label": "em",
+      "total": 4,
+      "media_diaria": 1.33
+    }
+  ]
+}

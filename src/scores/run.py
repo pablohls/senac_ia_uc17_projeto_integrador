@@ -1,100 +1,141 @@
-"""Orquestrador da Fase 4 (Scores) — Stories 3.1 a 3.4.
-
-Este módulo coordena a execução de todas as stories da Fase 4:
-- Story 3.1: Montar séries temporais por tópico (zero-filled)
-- Story 3.2: Trend Score Camada 1 (estatístico)
-- Story 3.3: Trend Score Camada 2 (LSTM + baseline)
-- Story 3.4: Validação por backtest
-
-Uso (offline):
-    poetry run python -m src.scores.run
-
-Uso (integrado no pipeline):
-    python -m src.scores.run (chamado por run_all.py)
-
-Entrada (artefatos):
-    - dados/topics/doc_topics.parquet (saída da Fase 3)
-    - config/config.yaml (parâmetros centralizados)
-
-Saída (artefatos):
-    - dados/scores/series.parquet (Story 3.1)
-    - dados/scores/scores.parquet (Stories 3.2 + 3.3)
-    - dados/scores/alerts.json (Story 3.3, best-effort)
+"""
+Runner principal da Fase 2 - executa limpeza, embeddings e clustering.
+Uso: python -m src.pln.run
 """
 
-from __future__ import annotations
-
-import logging
+import sys
 from pathlib import Path
+import time
+from datetime import datetime
 
-from src.common.config import load_config
+# Adiciona src ao path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from src.common.io import ler_parquet, salvar_parquet
-from src.scores.series import montar_series
+from src.pln.clean import aplicar_limpeza_corpus
+from src.pln.embed import embed_corpus
+from src.modelagem.topics import modelar_topicos
+from src.modelagem.doc_topics import criar_doc_topics
+from src.scores.trend_score import trend_score_l1
+from src.scores.forecast import calcular_surpresa_l2, salvar_alertas
 
-logger = logging.getLogger(__name__)
+def executar_limpeza():
+    """Executa a limpeza do corpus."""
+    print("\n" + "=" * 60)
+    print("ETAPA 1: LIMPEZA DO CORPUS")
+    print("=" * 60)
+    
+    caminho_entrada = Path("dados/raw/corpus.parquet")
+    caminho_saida = Path("dados/processed/corpus_clean.parquet")
+    
+    if not caminho_entrada.exists():
+        print(f"ERRO: {caminho_entrada} não encontrado!")
+        return False
+    
+    df_raw = ler_parquet(caminho_entrada)
+    print(f"Carregados {len(df_raw)} artigos")
+    
+    df_clean = aplicar_limpeza_corpus(df_raw)
+    print(f"Mantidos {len(df_clean)} artigos")
+    
+    caminho_saida.parent.mkdir(parents=True, exist_ok=True)
+    salvar_parquet(df_clean, caminho_saida)
+    print(f"Salvo em {caminho_saida}")
+    
+    return True
 
+def executar_embeddings():
+    """Executa a geração de embeddings."""
+    print("\n" + "=" * 60)
+    print("ETAPA 2: GERAÇÃO DE EMBEDDINGS")
+    print("=" * 60)
+    
+    embed_corpus()
+    return True
 
-def main() -> None:
-    """Orquestrador principal da Fase 4 (scores).
+def executar_clustering():
+    """Executa o clustering e criação de tópicos."""
+    print("\n" + "=" * 60)
+    print("ETAPA 3: CLUSTERING E TÓPICOS")
+    print("=" * 60)
+    
+    modelar_topicos()
+    return True
 
-    Flow:
-    1. Carrega configuração (config.yaml)
-    2. Lê doc_topics.parquet (entrada da Fase 3)
-    3. Executa Story 3.1: montar_series (zero-fill)
-    4. Persiste series.parquet
-    5. (Stories 3.2, 3.3, 3.4 em desenvolvimento)
+def executar_doc_topics():
+    """Executa a atribuição final de tópicos por documento."""
+    print("\n" + "=" * 60)
+    print("ETAPA 4: ATRIBUIÇÃO DE TÓPICOS")
+    print("=" * 60)
+    
+    criar_doc_topics()
+    return True
 
-    Raises:
-        FileNotFoundError: se doc_topics.parquet não existir.
-        ValueError: se validação de dados falhar.
-    """
-    logger.info("=" * 60)
-    logger.info("Fase 4 — Scores (Stories 3.1 a 3.4)")
-    logger.info("=" * 60)
+def main():
+    """Executa toda a pipeline da Fase 2."""
+    print("=" * 60)
+    print("INICIANDO PIPELINE DA FASE 2")
+    print(f"Data: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print("=" * 60)
+    
+    inicio_total = time.time()
+    
+    etapas = [
+        ("Limpeza", executar_limpeza),
+        ("Embeddings", executar_embeddings),
+        ("Clustering", executar_clustering),
+        ("Doc Topics", executar_doc_topics)
+    ]
+    
+    for nome, funcao in etapas:
+        try:
+            if not funcao():
+                print(f"\nERRO: Falha na etapa {nome}")
+                return
+        except Exception as e:
+            print(f"\nERRO na etapa {nome}: {e}")
+            return
+    
+    fim_total = time.time()
+    
+    print("\n" + "=" * 60)
+    print("PIPELINE DA FASE 2 CONCLUÍDA COM SUCESSO!")
+    print(f"Tempo total: {fim_total - inicio_total:.2f} segundos")
+    print("=" * 60)
 
-    # Step 1: Carrega configuração
-    logger.info("Carregando configuração...")
-    config = load_config()
-    logger.info(f"  Config OK. Trend Score params: w={config.trend_score.w}, "
-                f"alpha={config.trend_score.alpha}, H={config.trend_score.H}")
-
-    # Step 2: Lê entrada (doc_topics da Fase 3)
-    input_path = Path("dados/topics/doc_topics.parquet")
-    if not input_path.exists():
-        raise FileNotFoundError(
-            f"Entrada não encontrada: {input_path}\n"
-            "Certifique-se de que a Fase 3 (Modelagem) foi executada."
-        )
-    logger.info(f"Lendo {input_path}...")
-    doc_topics = ler_parquet(input_path)
-    logger.info(f"  ✓ {len(doc_topics)} documentos lidos")
-
-    # Step 3: Story 3.1 — Montar séries temporais
-    logger.info("\n--- Story 3.1: Montar séries temporais ---")
+     # Step 4: Story 3.2 — Trend Score Camada 1
+    logger.info("\n--- Story 3.2: Trend Score Camada 1 (estatístico) ---")
     try:
-        series = montar_series(doc_topics, gerar_weekly=True)
-        logger.info(f"  ✓ Séries montadas: {len(series)} linhas")
-        logger.info(f"  Tópicos únicos: {series['topic_id'].nunique()}")
-        logger.info(f"  Período: {series['data'].min()} a {series['data'].max()}")
+        scores = trend_score_l1(series, config.trend_score)
+        logger.info(f"  ✓ Scores calculados: {len(scores)} tópicos")
+        
+        # Log top 5
+        top_5 = scores.head(5)
+        logger.info("  Top 5 tendências:")
+        for _, row in top_5.iterrows():
+            badge = "[NOVO]" if row["is_new"] else ""
+            logger.info(f"    - Tópico {row['topic_id']}: score={row['trend_score']:.2f} {badge}")
 
         # Persiste
-        output_path = salvar_parquet(series, "dados/scores/series.parquet")
+        output_path = salvar_parquet(scores, "dados/scores/scores.parquet")
         logger.info(f"  ✓ Persistido: {output_path}")
 
     except Exception as e:
-        logger.error(f"  ✗ Erro na Story 3.1: {e}", exc_info=True)
+        logger.error(f"  ✗ Erro na Story 3.2: {e}", exc_info=True)
         raise
-
-    logger.info("\n" + "=" * 60)
-    logger.info("Fase 4 — Stories 3.1 concluída com sucesso!")
-    logger.info("(Stories 3.2, 3.3, 3.4 em desenvolvimento)")
-    logger.info("=" * 60)
-
+    
+    # Step 5: Story 3.3 — Trend Score Camada 2 (LSTM + Surpresa)
+    logger.info("\n--- Story 3.3: Trend Score Camada 2 (LSTM + Surpresa) ---")
+    try:
+        scores_l2, alerts = calcular_surpresa_l2(series, scores, config.trend_score)
+        if alerts:
+            logger.info(f"  ⚠ {len(alerts)} anomalias detectadas!")
+            salvar_alertas(alerts)
+        
+        output_path = salvar_parquet(scores_l2, "dados/scores/scores.parquet")
+        logger.info(f"  ✓ Persistido (L1+L2): {output_path}")
+    except Exception as e:
+        logger.warning(f"  ⚠ Camada 2 falhou (degradação graciosa): {e}")
 
 if __name__ == "__main__":
-    # Config básico de logging (será expandido em src/common/logging.py)
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s — [%(name)s] %(levelname)s: %(message)s",
-    )
     main()
