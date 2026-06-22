@@ -77,8 +77,6 @@ Python 3.12 · Poetry · PyTorch (CUDA 12.4) · Sentence-Transformers · BERTopi
 git clone https://github.com/pablohls/senac_ia_uc17_projeto_integrador.git
 cd senac_ia_uc17_projeto_integrador
 
-git lfs install          # ativa o Git LFS (necessário p/ arquivos grandes: .parquet, .npy)
-
 # Se identifique (aparece nos seus commits) — use seu nome e e-mail
 git config --global user.name  "Seu Nome"
 git config --global user.email "voce@email.com"
@@ -116,7 +114,7 @@ git merge minha-feature         # (estando na main) traz o trabalho do branch pa
 | `git clone <url>` | Baixa o repositório pela primeira vez |
 | `git pull` | Atualiza sua cópia com o que está no GitHub |
 | `git status` | Mostra arquivos alterados / pendentes |
-| `git add <arquivo>` | Prepara um arquivo para o commit (`git add .` = todos) |
+| `ggit p<arquivo>` | Prepara um arquivo para o commit (`git add .` = todos) |
 | `git commit -m "msg"` | Salva as mudanças no histórico local |
 | `git push` | Envia seus commits para o GitHub |
 | `git checkout -b <nome>` | Cria e entra em um branch novo |

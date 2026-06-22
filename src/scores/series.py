@@ -94,6 +94,7 @@ def montar_series(
         series_list = []
         for topic_id in topics:
             topic_data = series[series["topic_id"] == topic_id].copy()
+            topic_data["data"] = pd.to_datetime(topic_data["data"])
             topic_data = topic_data.set_index("data")
 
             # Resample semanal

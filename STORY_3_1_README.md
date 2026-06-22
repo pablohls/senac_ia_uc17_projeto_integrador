@@ -96,7 +96,6 @@ poetry run trendradar  # (quando run_all.py chamar)
 # Clone e setup
 git clone https://github.com/pablohls/senac_ia_uc17_projeto_integrador.git
 cd senac_ia_uc17_projeto_integrador
-git lfs install && git lfs pull
 poetry install
 
 # Troque para o branch
