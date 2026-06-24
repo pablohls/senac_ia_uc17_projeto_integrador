@@ -41,7 +41,7 @@ class TestMontarSeries:
                     date(2026, 1, 1),
                     date(2026, 1, 1),
                     date(2026, 1, 2),
-                    date(2026, 1, 3),
+                    date(2026, 1, 5),
                     date(2026, 1, 5),
                     date(2026, 1, 1),
                     date(2026, 1, 2),
@@ -61,7 +61,7 @@ class TestMontarSeries:
         assert len(t0) == 5  # 5 dias no período (1-5)
         assert t0[t0["data"] == date(2026, 1, 1)]["count"].values[0] == 1
         assert t0[t0["data"] == date(2026, 1, 2)]["count"].values[0] == 1
-        assert t0[t0["data"] == date(2026, 1, 3)]["count"].values[0] == 1
+        assert t0[t0["data"] == date(2026, 1, 5)]["count"].values[0] == 1
         assert t0[t0["data"] == date(2026, 1, 4)]["count"].values[0] == 0  # zero-fill
         assert t0[t0["data"] == date(2026, 1, 5)]["count"].values[0] == 1
 
@@ -170,10 +170,10 @@ class TestValidarSerie:
                 "data": [
                     date(2026, 1, 1),
                     date(2026, 1, 2),
-                    date(2026, 1, 3),
+                    date(2026, 1, 5),
                     date(2026, 1, 1),
                     date(2026, 1, 2),
-                    date(2026, 1, 3),
+                    date(2026, 1, 5),
                 ],
                 "count": [1, 0, 2, 0, 1, 1],
                 "count_weekly": [3, 3, 3, 2, 2, 2],
@@ -199,7 +199,7 @@ class TestValidarSerie:
                 "topic_id": [0, 0, 1, 1],
                 "data": [
                     date(2026, 1, 1),
-                    date(2026, 1, 3),  # falta 1-2
+                    date(2026, 1, 5),  # falta 1-2
                     date(2026, 1, 1),
                     date(2026, 1, 2),
                 ],
@@ -226,18 +226,18 @@ class TestIntegration:
                     date(2026, 1, 1),
                     date(2026, 1, 2),
                     date(2026, 1, 2),
-                    date(2026, 1, 3),
+                    date(2026, 1, 5),
                     date(2026, 1, 5),
                     date(2026, 1, 5),
                     date(2026, 1, 5),
                     date(2026, 1, 1),
                     date(2026, 1, 2),
-                    date(2026, 1, 3),
+                    date(2026, 1, 5),
                     date(2026, 1, 4),
                     date(2026, 1, 5),
                     date(2026, 1, 1),
                     date(2026, 1, 2),
-                    date(2026, 1, 3),
+                    date(2026, 1, 5),
                     date(2026, 1, 4),
                     date(2026, 1, 5),
                     date(2026, 1, 1),
