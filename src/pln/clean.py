@@ -31,7 +31,7 @@ def limpar_texto(texto):
     texto = re.sub(r'\s+([.,!?;:-])', r'\1', texto)
     
     # Filtra textos muito curtos
-    if len(texto.strip()) < 10:
+    if len(texto.strip()) < 3:
         return None
     
     return texto.strip()
