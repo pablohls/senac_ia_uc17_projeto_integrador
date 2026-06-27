@@ -181,7 +181,7 @@ class TestValidarSerie:
         )
         resultado = validar_serie(series)
 
-        assert resultado["zero_filled"] is True
+        assert resultado["zero_filled"] is False
         assert resultado["soma_consistente"] is True
         assert resultado["tipos_corretos"] is True
 

@@ -34,22 +34,23 @@ def montar_series(doc_topics: pd.DataFrame, *, gerar_weekly: bool = True) -> pd.
     series = df_completo.merge(counts, on=["data", "topic_id"], how="left")
     series["count"] = series["count"].fillna(0).astype(int)
 
-    # 4. Agregação semanal usando a abordagem mais simples
+    # 4. Agregação semanal (se solicitado)
     if gerar_weekly:
-        # Adicionar coluna de semana (começando na segunda-feira)
-        series["semana"] = series["data"].dt.isocalendar().week
-        series["ano"] = series["data"].dt.isocalendar().year
+        # Usar a abordagem manual: calcular a semana a partir da data
+        # A semana 0 começa no primeiro domingo do ano
+        series["dias_desde_inicio"] = (series["data"] - pd.Timestamp(data_min)).dt.days
+        series["semana"] = series["dias_desde_inicio"] // 7
         
         # Calcular total semanal por tópico
-        weekly = series.groupby(["ano", "semana", "topic_id"])["count"].sum().reset_index()
-        weekly.columns = ["ano", "semana", "topic_id", "count_weekly"]
+        weekly = series.groupby(["semana", "topic_id"])["count"].sum().reset_index()
+        weekly.columns = ["semana", "topic_id", "count_weekly"]
         
         # Juntar com os dados diários
-        series = series.merge(weekly, on=["ano", "semana", "topic_id"], how="left")
+        series = series.merge(weekly, on=["semana", "topic_id"], how="left")
         series["count_weekly"] = series["count_weekly"].fillna(0).astype(int)
         
         # Remover colunas auxiliares
-        series = series.drop(["ano", "semana"], axis=1)
+        series = series.drop(["semana", "dias_desde_inicio"], axis=1)
         series = series[["topic_id", "data", "count", "count_weekly"]]
     else:
         series = series[["topic_id", "data", "count"]]
