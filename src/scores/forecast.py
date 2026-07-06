@@ -161,9 +161,12 @@ def calcular_surpresa_l2(
             mae_lstm = mean_absolute_error(holdout_real, holdout_lstm)
             rmse_lstm = float(np.sqrt(mean_squared_error(holdout_real, holdout_lstm)))
 
-            # --- Surpresa (AC3): z do último ponto com σ dos resíduos out-of-sample
+            # --- Surpresa (AC3): z do último ponto com σ dos resíduos out-of-sample.
+            # Piso `sigma_min` (config): série quase constante tem σ≈0 e explodiria
+            # o z — flutuação menor que ~1 doc não é anomalia (mitigação de falso
+            # positivo documentada no backtest da Story 3.4).
             residuos = holdout_real - holdout_lstm
-            sigma_resid = float(np.std(residuos))
+            sigma_resid = max(float(np.std(residuos)), params.sigma_min)
             real_val = counts[-1]
             pred_lstm_final = holdout_lstm[-1]
             pred_baseline_final = holdout_baseline[-1]
