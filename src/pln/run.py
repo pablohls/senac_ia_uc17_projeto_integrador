@@ -5,7 +5,8 @@ from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.common.io import ler_parquet, salvar_parquet
+from src.common.io import ler_parquet, salvar_parquet, atualizar_manifest
+from src.common.config import config
 from src.pln.clean import aplicar_limpeza_corpus
 from src.pln.embed import embed_corpus
 from src.modelagem.topics import modelar_topicos
@@ -32,7 +33,15 @@ def executar_limpeza():
     caminho_saida.parent.mkdir(parents=True, exist_ok=True)
     salvar_parquet(df_clean, caminho_saida)
     print(f"Salvo em {caminho_saida}")
-    
+
+    # Manifesto transversal de reprodutibilidade (F9 — contrato A1)
+    atualizar_manifest(
+        "limpeza",
+        n_docs=len(df_clean),
+        stage_version="2.1",
+        params={"limpeza": config.limpeza.model_dump()},
+    )
+
     return True
 
 def executar_embeddings():

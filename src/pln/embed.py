@@ -5,11 +5,17 @@ from pathlib import Path
 from sentence_transformers import SentenceTransformer
 import torch
 
-from src.common.io import ler_parquet, salvar_parquet
+from src.common.io import ler_parquet, salvar_parquet, atualizar_manifest
 from src.common.config import config
 
 def gerar_embeddings(textos, modelo, batch_size=64):
-    dispositivo = "cuda" if torch.cuda.is_available() else "cpu"
+    # GPU NVIDIA (cuda) > Apple Silicon (mps) > CPU
+    if torch.cuda.is_available():
+        dispositivo = "cuda"
+    elif torch.backends.mps.is_available():
+        dispositivo = "mps"
+    else:
+        dispositivo = "cpu"
     print(f"Dispositivo usado: {dispositivo}")
     
     print(f"Carregando modelo: {modelo}")
@@ -88,27 +94,24 @@ def embed_corpus(caminho_entrada=None, caminho_saida=None, modelo=None, batch_si
     print(f"\n   -> Verificação de alinhamento: OK")
     
     print(f"\n4. Tempo total: {tempo_total:.2f} segundos")
-    
-    import json
-    from datetime import datetime
-    
-    manifest = {
-        "data": datetime.now().isoformat(),
-        "modelo": modelo,
-        "dispositivo": dispositivo,
-        "batch_size": batch_size,
-        "total_artigos": len(df_corpus),
-        "dimensao_embedding": embeddings.shape[1],
-        "tempo_segundos": tempo_total,
-        "tamanho_mb": embeddings.nbytes / 1024 / 1024,
-        "arquivo_embeddings": str(caminho_embeddings),
-        "arquivo_index": str(caminho_index)
-    }
-    
-    caminho_manifest = caminho_saida / "run_manifest.json"
-    with open(caminho_manifest, 'w') as f:
-        json.dump(manifest, f, indent=2)
-    print(f"   -> Manifesto salvo em: {caminho_manifest}")
+
+    # Manifesto transversal de reprodutibilidade (F9 — contrato A1)
+    atualizar_manifest(
+        "embeddings",
+        n_docs=len(df_corpus),
+        stage_version="2.2",
+        params={
+            "embedding": {
+                "modelo": modelo,
+                "dispositivo": dispositivo,
+                "batch_size": batch_size,
+                "dimensao": int(embeddings.shape[1]),
+                "tempo_segundos": round(tempo_total, 2),
+            }
+        },
+        extras={"model_name": modelo},
+    )
+    print(f"   -> Manifesto transversal atualizado (estágio: embeddings)")
     
     print("\n" + "=" * 60)
     print("EMBEDDINGS GERADOS COM SUCESSO!")
