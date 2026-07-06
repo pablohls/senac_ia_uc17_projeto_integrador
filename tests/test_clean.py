@@ -48,11 +48,17 @@ class TestLimpezaTexto:
         assert "5" in resultado
         assert "2024" in resultado
 
+    def test_limiar_configuravel(self):
+        texto = "Um texto de tamanho médio para o teste"
+        # limiar alto descarta; limiar baixo mantém (AC3 — min configurável)
+        assert limpar_texto(texto, min_chars=100) is None
+        assert limpar_texto(texto, min_chars=5) is not None
+
 class TestAplicarLimpezaCorpus:
     def test_preserva_colunas(self):
         df = pd.DataFrame({
             'doc_id': [1, 2],
-            'texto': ['Texto com https://link.com', 'Outro texto'],
+            'texto': ['Texto longo com link https://link.com', 'Outro texto qualquer'],
             'data': ['2024-01-01', '2024-01-02'],
             'fonte': ['G1', 'G2']
         })

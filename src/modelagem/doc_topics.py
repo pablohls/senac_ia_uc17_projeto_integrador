@@ -1,6 +1,9 @@
 """
-Módulo para atribuição de tópicos por documento.
-Cria a tabela final doc_topics.parquet com doc_id, data e topic_id.
+Módulo para atribuição de tópicos por documento (Story 2.4).
+
+Valida e finaliza a tabela canônica `dados/topics/doc_topics.parquet` no
+contrato A3: {doc_id, data, topic_id, probabilidade}. Se a entrada ainda não
+tiver a coluna `data` (versões antigas do clustering), faz o join com o corpus.
 """
 
 import pandas as pd
@@ -8,7 +11,7 @@ from pathlib import Path
 from datetime import datetime
 import json
 
-from src.common.io import ler_parquet, salvar_parquet
+from src.common.io import ler_parquet, salvar_parquet, atualizar_manifest
 
 def criar_doc_topics(caminho_doc_topics=None, caminho_corpus=None, 
                       caminho_topic_info=None, caminho_saida=None):
@@ -52,15 +55,18 @@ def criar_doc_topics(caminho_doc_topics=None, caminho_corpus=None,
     df_topic_info = ler_parquet(caminho_topic_info)
     print(f"   Topic info: {len(df_topic_info)} tópicos")
     
-    # Passo 2: Juntar doc_topics com corpus para adicionar a data
-    print("\n2. Adicionando datas aos documentos...")
-    
-    df_resultado = df_doc_topics.merge(
-        df_corpus[['doc_id', 'data']], 
-        on='doc_id', 
-        how='left'
-    )
-    
+    # Passo 2: Garantir a coluna `data` (contrato A3)
+    if 'data' in df_doc_topics.columns:
+        print("\n2. Coluna 'data' já presente (contrato A3) — validando...")
+        df_resultado = df_doc_topics.copy()
+    else:
+        print("\n2. Adicionando datas aos documentos (join com corpus)...")
+        df_resultado = df_doc_topics.merge(
+            df_corpus[['doc_id', 'data']],
+            on='doc_id',
+            how='left'
+        )
+
     print(f"   Resultado: {len(df_resultado)} linhas")
     
     # CORREÇÃO F12: Fail-fast se houver datas faltando
@@ -84,11 +90,17 @@ def criar_doc_topics(caminho_doc_topics=None, caminho_corpus=None,
     else:
         print(f"   OK: Todos os tópicos são válidos")
     
-    # Passo 4: Salvar resultado
+    # Passo 4: Salvar o artefato canônico do contrato A3
+    # (consumido pela Fase 3 — src/scores — e pelo dashboard da Fase 4)
     print("\n4. Salvando resultado...")
-    
+
+    caminho_saida = Path(caminho_saida)
     caminho_saida.mkdir(parents=True, exist_ok=True)
-    caminho_final = caminho_saida / "doc_topics_final.parquet"
+    colunas = ['doc_id', 'data', 'topic_id'] + (
+        ['probabilidade'] if 'probabilidade' in df_resultado.columns else []
+    )
+    df_resultado = df_resultado[colunas]
+    caminho_final = caminho_saida / "doc_topics.parquet"
     salvar_parquet(df_resultado, caminho_final)
     print(f"   Salvo em: {caminho_final}")
     
@@ -128,6 +140,14 @@ def criar_doc_topics(caminho_doc_topics=None, caminho_corpus=None,
     with open(caminho_relatorio, 'w') as f:
         json.dump(relatorio, f, indent=2)
     print(f"   Relatório salvo em: {caminho_relatorio}")
+
+    # Manifesto transversal de reprodutibilidade (F9 — contrato A1)
+    atualizar_manifest(
+        "doc_topics",
+        n_docs=total_docs,
+        stage_version="2.4",
+    )
+    print("   Manifesto transversal atualizado (estágio: doc_topics)")
     
     print("\n" + "=" * 60)
     print("DOC_TOPICS CRIADO COM SUCESSO!")

@@ -53,6 +53,29 @@ coleta:
 # Multilíngue para cobrir bem português; trocável sem mexer no código.
 embedding_model: sentence-transformers/paraphrase-multilingual-mpnet-base-v2
 
+# Parâmetros da limpeza/normalização PT-BR (Story 2.1).
+limpeza:
+  # Descarta textos com menos caracteres que isso após a limpeza.
+  min_text_length: 10
+
+# Parâmetros da geração de embeddings (Story 2.2).
+embedding:
+  # model_name herda `embedding_model` acima quando omitido.
+  batch_size: 64
+
+# Parâmetros do clustering BERTopic/UMAP/HDBSCAN (Story 2.3).
+# Calibrados para o corpus completo (~7 mil artigos / 4 meses); para rodar
+# sobre amostras pequenas, reduzir min_topic_size/min_cluster_size (ex.: 2).
+# Justificativa dos valores: gate de coerência em docs/qa/coerencia-topicos.md.
+clustering:
+  min_topic_size: 10
+  n_neighbors: 15
+  n_components: 5
+  min_cluster_size: 10
+  cluster_selection_epsilon: 0.1
+  random_state: 42
+  label_top_n: 3
+
 # Parâmetros do Trend Score (ver docs/architecture/adr-001-trend-score.md).
 trend_score:
   w: 7            # janela (dias) da média móvel das séries por tópico
