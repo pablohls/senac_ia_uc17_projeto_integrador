@@ -34,6 +34,11 @@ class TrendScoreParams(BaseModel):
     k: float = Field(2.5, gt=0, description="Desvios-padrão p/ anomalia.")
 
     # Camada 2 — LSTM (Story 3.3). Sem número mágico no código.
+    sigma_min: float = Field(
+        1.0, gt=0,
+        description="Piso do σ dos resíduos na surpresa — séries quase constantes "
+                    "têm σ≈0 e explodiriam o z (falso positivo com flutuação de <1 doc).",
+    )
     seed: int = Field(42, description="Seed do torch/numpy (reprodutibilidade).")
     lstm_hidden_size: int = Field(32, gt=0, description="Neurônios da camada oculta.")
     lstm_epochs: int = Field(50, gt=0, description="Épocas de treino por tópico.")

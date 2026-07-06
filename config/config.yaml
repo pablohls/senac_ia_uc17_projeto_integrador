@@ -85,6 +85,7 @@ trend_score:
   n_min: 5        # nº mínimo de documentos p/ um tópico entrar no ranking
   k: 2.5          # nº de desvios-padrão p/ marcar anomalia (Camada 2 / alertas)
   # Camada 2 — LSTM (Story 3.3)
+  sigma_min: 1.0      # piso do σ da surpresa (σ≈0 em série constante explodiria o z)
   seed: 42            # seed torch/numpy (reprodutibilidade do treino)
   lstm_hidden_size: 32  # neurônios da camada oculta
   lstm_epochs: 50       # épocas de treino por tópico

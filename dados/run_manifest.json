@@ -1,6 +1,6 @@
 {
   "run_id": "2026-07-06T22:52:54.878674+00:00",
-  "timestamp": "2026-07-06T23:12:57.412632+00:00",
+  "timestamp": "2026-07-06T23:22:00.594409+00:00",
   "config_hash": null,
   "model_name": "sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
   "n_docs": 4,
@@ -39,11 +39,12 @@
       "lambda_burst": 1.0,
       "n_min": 5,
       "k": 2.5,
+      "sigma_min": 1.0,
       "seed": 42,
       "lstm_hidden_size": 32,
       "lstm_epochs": 50,
       "lstm_lr": 0.01
     }
   },
-  "n_alerts": 28
+  "n_alerts": 1
 }

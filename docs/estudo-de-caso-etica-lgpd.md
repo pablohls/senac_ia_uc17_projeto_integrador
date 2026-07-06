@@ -2,14 +2,59 @@
 
 ## Parte 1 — Estudo de caso: uma tendência detectada
 
-> **Nota:** os números desta seção são preenchidos a partir do backtest
-> (`docs/qa/validacao_backtest.md`, Story 3.4) executado sobre o corpus
-> congelado. Ver metodologia lá descrita: cortes no tempo sem vazamento
-> de futuro.
+> **Fonte dos números:** backtests da Story 3.4 sobre o corpus congelado
+> (6.423 artigos, Olhar Digital, mar–jul/2026) — `docs/qa/validacao_backtest.md`
+> e `docs/qa/backtest-artemis-t0.md`. Metodologia: para cada corte T, os scores
+> são recalculados usando **apenas** dados com `data <= T` (sem vazamento de
+> futuro). Figura interativa: `docs/img/estudo-caso-series.html`.
 
-_(seção preenchida após a execução do pipeline sobre o corpus completo —
-tópico analisado, evolução do trend_score entre os cortes, figura da série
-temporal e narrativa do evento real por trás do surto)_
+### Caso principal — T139 "lua cheia": detecção a partir do silêncio
+
+Na primeira semana de julho/2026, o portal publicou uma onda de artigos sobre a
+lua cheia do mês (a "Lua do Cervo", evento astronômico datado e verificável).
+O backtest congela o sistema em 4 momentos e observa o que ele teria dito:
+
+| Corte (T) | Artigos na janela (R) | growth | trend_score | Leitura |
+|---|---|---|---|---|
+| 15/06 | 0 | 1,0 | −inf | tópico mudo — fora do ranking (guarda `n_min`) |
+| 22/06 | 0 | 1,0 | −inf | idem |
+| 29/06 | 0 | 1,0 | −inf | idem |
+| **06/07** | **7** | **8,0×** | **8,07** | **1º lugar do ranking — tendência sinalizada** |
+
+O sistema ficou **corretamente em silêncio** enquanto não havia cobertura (a
+guarda de suporte mínimo impede que ruído entre no ranking) e sinalizou o
+assunto **na semana em que o surto aconteceu**, colocando-o no topo. É o
+comportamento desejado de um radar de tendências: não gritar antes, não
+atrasar depois.
+
+### Caso complementar — T0 "artemis missão nasa": o score acompanha o ciclo da notícia
+
+O maior tópico do corpus (318 artigos) cobre a missão **Artemis 2** da NASA —
+evento real com tripulação, amplamente noticiado. Aqui o backtest mostra a
+outra face do algoritmo — o score **desce** quando a cobertura esfria e
+**volta a subir** com a nova onda de notícias:
+
+| Corte (T) | R | growth | trend_score | Leitura |
+|---|---|---|---|---|
+| 15/06 | 20 | 1,75× | 1,86 | cobertura aquecida |
+| 22/06 | 7 | 0,38× | −2,01 | ciclo esfria — score negativo (queda) |
+| 29/06 | 5 | 0,75× | −0,51 | estabilização em baixa |
+| 06/07 | 16 | 2,83× | 3,35 | nova onda de notícias — score sobe |
+
+**Por que isso importa:** o trend_score não mede "tamanho" do assunto, mede
+**aceleração** — um tópico grande e estável não é tendência; um tópico
+acelerando é. Os dois casos juntos mostram as duas propriedades.
+
+### Achado honesto do processo de validação
+
+A primeira execução do backtest expôs um defeito real: em séries quase
+constantes, o desvio dos resíduos (σ) tendia a zero e o score de surpresa da
+Camada 2 explodia (z > 300), marcando "anomalia" em cortes onde **nada havia
+acontecido** (R = 0). A correção — piso `sigma_min = 1.0` documentado em
+`config.yaml` — derrubou os alertas de 28 para **1** (T35 "iphone apple":
+3 artigos reais vs 0,34 previstos, z = 2,66 > k = 2,5, um pico legítimo).
+Este é exatamente o risco de **alarme falso** discutido na Parte 2, detectado
+e mitigado pela própria validação.
 
 ## Parte 2 — Ética e LGPD
 

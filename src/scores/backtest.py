@@ -66,7 +66,11 @@ def executar_backtest(series_path: str, datas_corte: list, topic_id: int) -> pd.
             continue
 
         scores_l1 = trend_score_l1(series_t, config.trend_score, t_ref=T)
-        scores_l2, _ = calcular_surpresa_l2(series_t, scores_l1, config.trend_score)
+        # L2 só para o tópico-alvo (treinar LSTM dos ~150 tópicos por corte
+        # custaria minutos sem mudar o resultado do relatório)
+        serie_alvo = series_t[series_t["topic_id"] == topic_id]
+        scores_alvo = scores_l1[scores_l1["topic_id"] == topic_id]
+        scores_l2, _ = calcular_surpresa_l2(serie_alvo, scores_alvo, config.trend_score)
 
         row = scores_l2[scores_l2["topic_id"] == topic_id]
         if not row.empty:
@@ -138,8 +142,16 @@ def gerar_relatorio_backtest(
         if df_res.empty:
             f.write("_Sem resultados — tópico ausente nos cortes avaliados._\n\n")
         else:
-            f.write(df_res[colunas].to_markdown(index=False))
-            f.write("\n\n")
+            # Tabela markdown sem depender do `tabulate` (dependência opcional
+            # do pandas.to_markdown que não está no projeto)
+            df_fmt = df_res[colunas].copy()
+            for c in df_fmt.select_dtypes("float").columns:
+                df_fmt[c] = df_fmt[c].map(lambda v: f"{v:.3f}")
+            f.write("| " + " | ".join(colunas) + " |\n")
+            f.write("|" + "---|" * len(colunas) + "\n")
+            for _, linha in df_fmt.iterrows():
+                f.write("| " + " | ".join(str(v) for v in linha.values) + " |\n")
+            f.write("\n")
         f.write("## 2. Análise qualitativa\n\n")
         f.write(_analise_qualitativa(df_res))
     logger.info("Relatório salvo em %s", output_path)
