@@ -59,5 +59,11 @@ env/
 embeddings/
 models/
 
-# NOTA: *.parquet e *.npy NÃO são ignorados aqui — são versionados normalmente
-# no git. O corpus de `dados/` segue ignorado acima (reprodutível).
+# ---- Política de dados (contratos A1–A4) ----
+# VERSIONADOS: dados/raw/ (corpus A1 congelado + urls), dados/topics/,
+#   dados/scores/, dados/run_manifest.json e embeddings_index.parquet —
+#   leves; o dashboard funciona logo após o clone, sem rodar o pipeline.
+# IGNORADOS (pesados e 100% regeneráveis a partir do corpus A1 via
+#   `poetry run trendradar`):
+dados/processed/corpus_clean.parquet
+dados/processed/embeddings.npy

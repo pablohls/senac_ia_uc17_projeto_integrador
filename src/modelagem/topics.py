@@ -64,7 +64,11 @@ def configurar_modelo(params=None):
     )
 
     # BERTopic combina tudo
+    # language="multilingual" é OBRIGATÓRIO: o default ("english") faz o
+    # _preprocess_text interno remover caracteres não-ASCII — os acentos do
+    # PT-BR sumiam dos termos c-TF-IDF ("missão" virava "misso").
     model = BERTopic(
+        language="multilingual",
         embedding_model=None,  # Usamos embeddings prontos
         umap_model=umap_model,
         hdbscan_model=hdbscan_model,
