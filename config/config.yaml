@@ -84,3 +84,8 @@ trend_score:
   lambda_burst: 1.0  # peso do termo de "surto" (burst) na Camada 1
   n_min: 5        # nº mínimo de documentos p/ um tópico entrar no ranking
   k: 2.5          # nº de desvios-padrão p/ marcar anomalia (Camada 2 / alertas)
+  # Camada 2 — LSTM (Story 3.3)
+  seed: 42            # seed torch/numpy (reprodutibilidade do treino)
+  lstm_hidden_size: 32  # neurônios da camada oculta
+  lstm_epochs: 50       # épocas de treino por tópico
+  lstm_lr: 0.01         # learning rate do Adam

@@ -33,6 +33,12 @@ class TrendScoreParams(BaseModel):
     n_min: int = Field(5, gt=0, description="Mínimo de docs por tópico no ranking.")
     k: float = Field(2.5, gt=0, description="Desvios-padrão p/ anomalia.")
 
+    # Camada 2 — LSTM (Story 3.3). Sem número mágico no código.
+    seed: int = Field(42, description="Seed do torch/numpy (reprodutibilidade).")
+    lstm_hidden_size: int = Field(32, gt=0, description="Neurônios da camada oculta.")
+    lstm_epochs: int = Field(50, gt=0, description="Épocas de treino por tópico.")
+    lstm_lr: float = Field(0.01, gt=0, description="Learning rate do Adam.")
+
 
 # --------------------------------------------------------------------------
 # Fase 1 — Coleta (Stories 1.2, 1.3, 1.4)
