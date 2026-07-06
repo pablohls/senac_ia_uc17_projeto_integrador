@@ -40,7 +40,7 @@ def load_artifacts():
       topic_info.parquet  {topic_id, label, size, first_seen_date, last_seen_date}
       topic_terms.parquet {topic_id, term, ctfidf_weight, rank}
       doc_topics.parquet  {doc_id, data, topic_id[, probabilidade]}
-      corpus_clean.parquet {doc_id, titulo, url, fonte, ...} (só metadados lidos)
+      corpus.parquet      {doc_id, titulo, url, fonte, ...} (A1 congelado; só metadados lidos)
     """
     base_path = "dados"
 
@@ -50,7 +50,9 @@ def load_artifacts():
         "topic_info": os.path.join(base_path, "topics", "topic_info.parquet"),
         "topic_terms": os.path.join(base_path, "topics", "topic_terms.parquet"),
         "doc_topics": os.path.join(base_path, "topics", "doc_topics.parquet"),
-        "corpus": os.path.join(base_path, "processed", "corpus_clean.parquet"),
+        # Metadados dos artigos vêm do corpus A1 (versionado) — o dashboard
+        # funciona logo após o clone, sem precisar rodar o pipeline.
+        "corpus": os.path.join(base_path, "raw", "corpus.parquet"),
     }
 
     # Verifica se os arquivos existem antes de ler
@@ -175,7 +177,7 @@ st.dataframe(
         "growth": "{:.2%}",
         **({"surprise_z": "{:.2f}"} if tem_camada2 else {}),
     }),
-    use_container_width=True,
+    width='stretch',
     hide_index=True
 )
 
@@ -214,7 +216,7 @@ if topico_selecionado_id is not None:
                 markers=True,
                 labels={"data": "Data", "count": "Artigos por dia"},
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
         else:
             st.info("Sem dados temporais para exibir.")
 
@@ -226,7 +228,7 @@ if topico_selecionado_id is not None:
                 topic_terms[["term", "ctfidf_weight"]]
                 .sort_values(by="ctfidf_weight", ascending=False)
                 .rename(columns={"term": "Termo", "ctfidf_weight": "Peso (c-TF-IDF)"}),
-                use_container_width=True,
+                width='stretch',
                 hide_index=True
             )
         else:
@@ -269,5 +271,5 @@ def _grafo_cacheado(topic_terms: pd.DataFrame, max_nos: int):
 
 st.plotly_chart(
     _grafo_cacheado(df_topic_terms, max_nos),
-    use_container_width=True,
+    width='stretch',
 )
