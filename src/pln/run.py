@@ -84,10 +84,12 @@ def main():
         try:
             if not funcao():
                 print(f"\nERRO: Falha na etapa {nome}")
-                return
+                sys.exit(1)
+        except SystemExit:
+            raise
         except Exception as e:
             print(f"\nERRO na etapa {nome}: {e}")
-            return
+            sys.exit(1)
     
     fim_total = time.time()
     

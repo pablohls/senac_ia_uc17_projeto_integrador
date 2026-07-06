@@ -34,14 +34,14 @@ Coleta (sitemap)  →  PLN (limpeza + embeddings)  →  Modelagem (BERTopic)  �
 ```
 config/          # config.yaml — parâmetros centrais (sem números mágicos no código)
 src/
-  common/        # utilidades compartilhadas (io, config, logging)
-  coleta/        # Fase 1: coleta via sitemap → corpus.parquet
+  common/        # utilidades compartilhadas (io, config)
+  coleta/        # Fase 1: coleta via sitemap → corpus.parquet (contrato A1)
   pln/           # Fase 2: limpeza/normalização + embeddings
-  modelagem/     # Fase 3: clustering de tópicos (BERTopic) + atribuição
-  scores/        # Fase 4: séries temporais + Trend Score (L1 estatística + L2 LSTM)
-  dashboard/     # Fase 5: app Streamlit
-dados/{raw,processed,topics,scores}/   # artefatos entre fases (não versionados)
-tests/  notebooks/  docs/
+  modelagem/     # Fase 2: clustering de tópicos (BERTopic) + atribuição (contrato A3)
+  scores/        # Fase 3: séries temporais + Trend Score (L1 estatística + L2 LSTM) + backtest
+  dashboard/     # Fase 4: app Streamlit (ranking, drill-down, grafo, alertas)
+dados/{raw,processed,topics,scores}/   # artefatos entre fases (contratos A1–A4)
+tests/  scripts/  docs/
 ```
 
 ## Como rodar (reprodução do demo)
@@ -49,12 +49,17 @@ tests/  notebooks/  docs/
 Pré-requisitos: **Python 3.12** e **Poetry**. Para a GPU, driver NVIDIA com suporte a
 CUDA 12.4 (o ambiente foi validado em NVIDIA T1000, driver 573.44). Sem GPU compatível,
 o pipeline roda em modo CPU — basta trocar `cu124` por `cpu` no `pyproject.toml`.
+Em Apple Silicon (M1/M2/M3), a aceleração MPS/Metal é detectada automaticamente.
 
 ```bash
-poetry install            # 1. cria o ambiente isolado e instala tudo (trava versões no poetry.lock)
-poetry run trendradar     # 2. executa o pipeline (coleta → PLN → modelagem → scores)
-streamlit run src/dashboard/app.py   # 3. abre o dashboard de tendências
+poetry install                                  # 1. cria o ambiente isolado e instala tudo
+poetry run trendradar                           # 2. pipeline offline (PLN → tópicos → scores)
+poetry run streamlit run src/dashboard/app.py   # 3. abre o dashboard de tendências
 ```
+
+> O comando 2 parte do **corpus congelado** (`dados/raw/corpus.parquet`). Para
+> refazer a coleta do zero (~2h, rate-limit educado): `poetry run trendradar --com-coleta`.
+> Validação por backtest (Story 3.4): `poetry run python -m src.scores.backtest`.
 
 > Verificação rápida do ambiente: `poetry run pytest tests/smoke_test.py -s`
 > (confirma imports, detecção de GPU e leitura/escrita de Parquet).
@@ -114,7 +119,7 @@ git merge minha-feature         # (estando na main) traz o trabalho do branch pa
 | `git clone <url>` | Baixa o repositório pela primeira vez |
 | `git pull` | Atualiza sua cópia com o que está no GitHub |
 | `git status` | Mostra arquivos alterados / pendentes |
-| `ggit p<arquivo>` | Prepara um arquivo para o commit (`git add .` = todos) |
+| `git add <arquivo>` | Prepara um arquivo para o commit (`git add .` = todos) |
 | `git commit -m "msg"` | Salva as mudanças no histórico local |
 | `git push` | Envia seus commits para o GitHub |
 | `git checkout -b <nome>` | Cria e entra em um branch novo |
@@ -133,3 +138,7 @@ Projeto desenvolvido por 4 integrantes como entrega final da UC17.
 
 A coleta usa apenas dados públicos/editoriais, respeita `robots.txt` e os Termos de Uso
 dos portais, aplica rate-limiting e **não armazena dados pessoais (PII)**.
+
+Discussão completa (coleta responsável, LGPD, anonimização, risco de alarme falso e
+mitigações) e o estudo de caso de uma tendência detectada:
+[`docs/estudo-de-caso-etica-lgpd.md`](docs/estudo-de-caso-etica-lgpd.md).
