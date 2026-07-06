@@ -255,8 +255,10 @@ st.divider()
 # -----------------------------------------------------------------------------
 st.header("🕸️ Grafo de Co-ocorrência")
 st.markdown(
-    "Termos que aparecem juntos nos mesmos tópicos. O tamanho do nó indica a "
-    "força do termo; a espessura da aresta, a força da co-ocorrência."
+    "Termos que aparecem juntos nos mesmos tópicos. **Cor** = comunidade "
+    "(tópico dominante); **tamanho** = força do termo; **espessura da aresta** = "
+    "força da co-ocorrência. Passe o mouse sobre um nó para ver o nome e a "
+    "comunidade — só os termos mais fortes têm rótulo fixo."
 )
 
 max_nos = st.slider("Número de termos no grafo:", min_value=10, max_value=80, value=30, step=5)
