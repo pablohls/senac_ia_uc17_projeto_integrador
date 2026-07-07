@@ -58,7 +58,9 @@ poetry run streamlit run src/dashboard/app.py   # 3. abre o dashboard de tendên
 ```
 
 > O comando 2 parte do **corpus congelado** (`dados/raw/corpus.parquet`). Para
-> refazer a coleta do zero (~2h, rate-limit educado): `poetry run trendradar --com-coleta`.
+> atualizar a coleta: `poetry run trendradar --com-coleta` — o modo é **incremental**
+> (baixa só os artigos novos e agrega ao corpus; minutos, não horas). Reconstrução
+> total: `poetry run python -m src.coleta.extract --completo` (~2h, rate-limit educado).
 > Validação por backtest (Story 3.4): `poetry run python -m src.scores.backtest`.
 
 > Verificação rápida do ambiente: `poetry run pytest tests/smoke_test.py -s`

@@ -11,7 +11,12 @@ from __future__ import annotations
 
 import logging
 
-from src.coleta.extract import CAMINHO_CORPUS, extrair_artigos, mesclar_corpus
+from src.coleta.extract import (
+    CAMINHO_CORPUS,
+    extrair_artigos,
+    filtrar_urls_novas,
+    mesclar_corpus,
+)
 from src.coleta.sitemap import listar_urls_canaltech
 from src.common.config import load_config
 from src.common.io import atualizar_manifest, ler_parquet, salvar_parquet
@@ -27,10 +32,15 @@ def main() -> None:
     urls = listar_urls_canaltech(config)
     print(f"[i] {len(urls)} URLs do Canaltech na janela.")
 
+    # Modo incremental (Story 1.5): não re-baixa o que já está no corpus.
+    atual = ler_parquet(CAMINHO_CORPUS) if CAMINHO_CORPUS.exists() else None
+    urls = filtrar_urls_novas(urls, atual)
+    if atual is not None:
+        print(f"[i] Modo incremental: {len(urls)} URLs novas (corpus atual: {len(atual)} artigos).")
+
     corpus_canaltech = extrair_artigos(urls, config)
     print(f"[i] {len(corpus_canaltech)} artigos extraídos do Canaltech.")
 
-    atual = ler_parquet(CAMINHO_CORPUS) if CAMINHO_CORPUS.exists() else None
     combinado = mesclar_corpus(atual, corpus_canaltech)
 
     destino = salvar_parquet(combinado, CAMINHO_CORPUS)

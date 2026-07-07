@@ -31,7 +31,7 @@ def _rodar_coleta() -> None:
     print("FASE 1: COLETA (sitemap → extract → canaltech)")
     print("=" * 60)
     sitemap.main()
-    extract.main()
+    extract.main(argv=[])  # argv=[] evita herdar os args do CLI `trendradar`
     canaltech.main()
 
 
