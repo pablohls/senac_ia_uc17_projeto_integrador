@@ -167,6 +167,11 @@ class InsightParams(BaseModel):
     top_artigos: int = Field(
         5, gt=0, description="Nº de artigos por tópico no prompt do Analista IA."
     )
+    trecho_max_chars: int = Field(
+        500, gt=0,
+        description="Tamanho máximo (caracteres) do trecho de cada artigo no "
+                    "prompt — limita o contexto enviado ao LLM.",
+    )
 
 
 # --------------------------------------------------------------------------

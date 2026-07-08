@@ -110,3 +110,4 @@ insight:
   timeout_s: 120.0         # acomoda o cold start do Ollama (~60s carregando na VRAM)
   rag_top_k: 6             # nº de trechos recuperados por pergunta (RAG)
   top_artigos: 5           # nº de artigos por tópico no prompt do Analista IA
+  trecho_max_chars: 500    # tamanho máximo do trecho de cada artigo no prompt
