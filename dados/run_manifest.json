@@ -1,6 +1,6 @@
 {
   "run_id": "2026-07-06T22:52:54.878674+00:00",
-  "timestamp": "2026-07-08T23:36:25.430726+00:00",
+  "timestamp": "2026-07-08T23:58:24.443697+00:00",
   "config_hash": null,
   "model_name": "sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
   "n_docs": 4,
@@ -19,10 +19,10 @@
     },
     "embedding": {
       "modelo": "sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
-      "dispositivo": "mps",
+      "dispositivo": "cuda",
       "batch_size": 64,
       "dimensao": 768,
-      "tempo_segundos": 130.58
+      "tempo_segundos": 13.46
     },
     "clustering": {
       "min_topic_size": 10,
