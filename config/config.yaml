@@ -90,3 +90,23 @@ trend_score:
   lstm_hidden_size: 32  # neurônios da camada oculta
   lstm_epochs: 50       # épocas de treino por tópico
   lstm_lr: 0.01         # learning rate do Adam
+
+# Parâmetros da camada de IA generativa (Fase 5 — ADR-002, Story 5.1).
+# Cliente OpenAI-compatible: trocar base_url/model alterna entre Ollama local
+# (demo, soberania de dados) e um endpoint remoto (dev) SEM tocar no código.
+# Falha do LLM nunca derruba o pipeline: chat() devolve None (degradação graciosa).
+insight:
+  # Endpoint OpenAI-compatible. Default: Ollama local na VM/demo.
+  # Para endpoint remoto, troque base_url + model (ex.: API OpenAI-compatible da nuvem).
+  base_url: http://localhost:11434/v1
+  # Modelo firmado no ADR-002 (líder PT-BR no Open PT-LLM Leaderboard).
+  model: qwen2.5:14b
+  # Nome da env var com a chave do endpoint. Sem a var definida, usa o dummy
+  # "ollama" (o Ollama ignora a chave). NUNCA colocar segredo neste arquivo.
+  api_key_env: LLM_API_KEY
+  temperature_batch: 0.0   # Analista IA (batch): determinístico e reprodutível
+  temperature_chat: 0.3    # RAG conversacional: leve variação, ainda factual
+  max_tokens: 512          # limite de tokens por resposta
+  timeout_s: 120.0         # acomoda o cold start do Ollama (~60s carregando na VRAM)
+  rag_top_k: 6             # nº de trechos recuperados por pergunta (RAG)
+  top_artigos: 5           # nº de artigos por tópico no prompt do Analista IA

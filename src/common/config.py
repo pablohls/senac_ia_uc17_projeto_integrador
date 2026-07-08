@@ -7,6 +7,7 @@ Seções:
   - coleta (Fase 1: sitemap, extract, canaltech)
   - limpeza / embedding / clustering (Fase 2: PLN e modelagem de tópicos)
   - trend_score (Fase 3: ADR-001)
+  - insight (Fase 5: camada de IA generativa — ADR-002)
 """
 
 from __future__ import annotations
@@ -131,6 +132,44 @@ class ClusteringParams(BaseModel):
 
 
 # --------------------------------------------------------------------------
+# Fase 5 — Camada de IA generativa (ver docs/architecture/adr-002-camada-llm.md)
+# --------------------------------------------------------------------------
+class InsightParams(BaseModel):
+    """Parâmetros da camada LLM (Analista IA e RAG — ADR-002, Story 5.1).
+
+    O cliente é OpenAI-compatible: trocar `base_url`/`model` alterna entre o
+    Ollama local (demo) e um endpoint remoto — sem tocar no código.
+    """
+
+    base_url: str = Field(
+        "http://localhost:11434/v1",
+        description="Endpoint OpenAI-compatible (default: Ollama local).",
+    )
+    model: str = Field("qwen2.5:14b", description="Modelo servido no endpoint.")
+    api_key_env: str = Field(
+        "LLM_API_KEY",
+        description="Nome da env var com a chave do endpoint; ausente → dummy "
+                    "'ollama' (o Ollama ignora a chave). Nunca hardcodear segredo.",
+    )
+    temperature_batch: float = Field(
+        0.0, ge=0, description="Temperatura do Analista IA (batch) — determinístico."
+    )
+    temperature_chat: float = Field(
+        0.3, ge=0, description="Temperatura do RAG conversacional."
+    )
+    max_tokens: int = Field(512, gt=0, description="Limite de tokens por resposta.")
+    timeout_s: float = Field(
+        120.0, gt=0,
+        description="Tempo máximo por chamada, em segundos — precisa acomodar o "
+                    "cold start do Ollama (~60s carregando o modelo na VRAM).",
+    )
+    rag_top_k: int = Field(6, gt=0, description="Nº de trechos recuperados no RAG.")
+    top_artigos: int = Field(
+        5, gt=0, description="Nº de artigos por tópico no prompt do Analista IA."
+    )
+
+
+# --------------------------------------------------------------------------
 # Raiz
 # --------------------------------------------------------------------------
 class Config(BaseModel):
@@ -143,15 +182,17 @@ class Config(BaseModel):
     limpeza: LimpezaParams = Field(default_factory=LimpezaParams)
     embedding: EmbeddingParams = Field(default_factory=EmbeddingParams)
     clustering: ClusteringParams = Field(default_factory=ClusteringParams)
+    insight: InsightParams = Field(default_factory=InsightParams)
 
-    # Diretórios dos artefatos (contratos A1–A4).
+    # Diretórios dos artefatos (contratos A1–A5).
     dados_raw: str = "dados/raw"
     dados_processed: str = "dados/processed"
     dados_topics: str = "dados/topics"
     dados_scores: str = "dados/scores"
+    dados_insight: str = "dados/insight"
 
     @model_validator(mode="after")
-    def _herdar_embedding_model(self) -> "Config":
+    def _herdar_embedding_model(self) -> Config:
         """`embedding.model_name` herda o `embedding_model` raiz se não definido."""
         if self.embedding.model_name is None:
             self.embedding.model_name = self.embedding_model
