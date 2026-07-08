@@ -1,8 +1,8 @@
 """
-Dashboard TrendRadar (Fase 4 — Stories 4.1, 4.2, 4.3).
+Dashboard TrendRadar (Fase 4 — Stories 4.1, 4.2, 4.3; Fase 5 — Story 5.3).
 
-Precompute-then-serve: lê somente artefatos gerados offline pelas Fases 2-3
-(contratos A3/A4) — nenhum cálculo pesado acontece aqui (NFR8, carga < 5s).
+Precompute-then-serve: lê somente artefatos gerados offline pelas Fases 2-3/5
+(contratos A3/A4/A5) — nenhum cálculo pesado acontece aqui (NFR8, carga < 5s).
 
 Uso: poetry run streamlit run src/dashboard/app.py
 """
@@ -15,6 +15,7 @@ import plotly.express as px
 import streamlit as st
 
 from src.dashboard.graph import construir_grafo, figura_grafo
+from src.dashboard.insight import aplicar_insight, carregar_briefings
 
 # Configuração da página para otimizar o layout
 st.set_page_config(
@@ -80,6 +81,9 @@ def load_artifacts():
     else:
         artifacts["alerts"] = None
 
+    # Briefings do Analista IA (A5) são OPCIONAIS (Story 5.3 — mesmo padrão)
+    artifacts["briefings"] = carregar_briefings()
+
     return artifacts
 
 # -----------------------------------------------------------------------------
@@ -120,6 +124,15 @@ df_ranking = df_ranking.sort_values(by="trend_score", ascending=False).reset_ind
 tem_camada2 = (
     "surprise_z" in df_ranking.columns and df_ranking["surprise_z"].notna().any()
 )
+
+# Analista IA (Story 5.3): com A5 presente, label_llm substitui o c-TF-IDF;
+# sem A5, df_ranking volta intacto e o dashboard fica como antes da Fase 5.
+df_ranking, tem_insight = aplicar_insight(df_ranking, artifacts["briefings"])
+if tem_insight:
+    modelo_insight = artifacts["briefings"]["model_name"].iloc[0]
+    st.caption(
+        f"🧠 Analista IA ativo — rótulos e análises gerados por LLM local ({modelo_insight})."
+    )
 
 # -----------------------------------------------------------------------------
 # Story 4.3: Alertas visuais de anomalia (com degradação graciosa)
@@ -198,12 +211,33 @@ topico_selecionado_id = st.selectbox(
 )
 
 if topico_selecionado_id is not None:
-    tab1, tab2, tab3 = st.tabs(["📈 Série Temporal", "🔠 Termos Representativos", "📰 Artigos-Fonte"])
+    # Aba "🧠 Análise" só existe quando o Analista IA está disponível (Story 5.3)
+    nomes_abas = ["📈 Série Temporal", "🔠 Termos Representativos", "📰 Artigos-Fonte"]
+    if tem_insight:
+        nomes_abas.insert(0, "🧠 Análise")
+        tab_analise, tab1, tab2, tab3 = st.tabs(nomes_abas)
+    else:
+        tab1, tab2, tab3 = st.tabs(nomes_abas)
 
     # Filtra os dados apenas para o tópico selecionado
     topic_serie = df_series[df_series["topic_id"] == topico_selecionado_id]
     topic_terms = df_topic_terms[df_topic_terms["topic_id"] == topico_selecionado_id]
     topic_articles = df_artigos[df_artigos["topic_id"] == topico_selecionado_id]
+
+    # Aba 0 (Story 5.3): "por que sobe" gerado pelo Analista IA (batch, A5)
+    if tem_insight:
+        with tab_analise:
+            linha_topico = df_ranking[df_ranking["topic_id"] == topico_selecionado_id]
+            why = ""
+            if not linha_topico.empty:
+                why = str(linha_topico.iloc[0].get("why_summary") or "").strip()
+            if why:
+                st.markdown(f"**Por que este tópico está subindo?**\n\n{why}")
+                st.caption(
+                    f"Análise gerada por LLM local ({modelo_insight}) — Analista IA (batch)."
+                )
+            else:
+                st.info("Sem análise do Analista IA para este tópico (fallback c-TF-IDF).")
 
     # Aba 1: Gráfico Temporal — schema real: {topic_id, data, count}
     with tab1:
