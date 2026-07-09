@@ -14,8 +14,10 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
+from src.common.llm import llm_disponivel
 from src.dashboard.graph import construir_grafo, figura_grafo
 from src.dashboard.insight import aplicar_insight, carregar_briefings
+from src.rag.responder import MSG_INDISPONIVEL, responder_stream
 
 # Configuração da página para otimizar o layout
 st.set_page_config(
@@ -309,3 +311,59 @@ st.plotly_chart(
     _grafo_cacheado(df_topic_terms, max_nos),
     width='stretch',
 )
+
+st.divider()
+
+# -----------------------------------------------------------------------------
+# Story 5.5: Chat RAG — converse com as tendências (guardado por tem_rag)
+# -----------------------------------------------------------------------------
+tem_rag = llm_disponivel()
+
+if tem_rag:
+    st.header("💬 Converse com as Tendências")
+    st.markdown(
+        "Pergunte em linguagem natural sobre as notícias coletadas. As respostas "
+        "são geradas por LLM local e **citam os artigos-fonte** — verifique cada "
+        "afirmação na matéria original."
+    )
+
+    if "chat_historico" not in st.session_state:
+        st.session_state.chat_historico = []
+
+    for msg in st.session_state.chat_historico:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+
+    pergunta = st.chat_input("Ex.: o que está acontecendo com os preços do iPhone?")
+    if pergunta:
+        st.session_state.chat_historico.append({"role": "user", "content": pergunta})
+        with st.chat_message("user"):
+            st.markdown(pergunta)
+
+        with st.chat_message("assistant"):
+            resultado = responder_stream(pergunta)
+            if resultado["tokens"] is None:
+                # Sem base no corpus: recusa honesta, sem chamar o LLM (AC3/AC5)
+                texto = resultado["resposta_pronta"]
+                st.markdown(texto)
+            else:
+                # Streaming token a token (AC4); stream vazio = LLM caiu (AC5)
+                texto = st.write_stream(resultado["tokens"]) or ""
+                if not texto.strip():
+                    texto = MSG_INDISPONIVEL
+                    st.markdown(texto)
+
+            if resultado["citacoes"] and texto not in (MSG_INDISPONIVEL,):
+                fontes_md = "\n".join(
+                    f"- [{c['titulo']}]({c['url']}) `{c['fonte']}`"
+                    for c in resultado["citacoes"]
+                )
+                st.markdown(f"**Fontes:**\n{fontes_md}")
+                texto = f"{texto}\n\n**Fontes:**\n{fontes_md}"
+
+        st.session_state.chat_historico.append({"role": "assistant", "content": texto})
+else:
+    st.caption(
+        "💬 Chat com as tendências indisponível (endpoint LLM fora do ar) — "
+        "o restante do dashboard segue normal."
+    )
