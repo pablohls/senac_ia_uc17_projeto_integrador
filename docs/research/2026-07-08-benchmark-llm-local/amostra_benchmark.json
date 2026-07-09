@@ -1,0 +1,111 @@
+{
+  "descricao": "Amostra congelada do benchmark A/B/C (Story 5.6) — mesmos itens e ordem para todos os modelos.",
+  "gerado_de": {
+    "scores": "dados/scores/scores.parquet",
+    "topic_info": "dados/topics/topic_info.parquet"
+  },
+  "topicos": [
+    {
+      "topic_id": 139,
+      "estrato": "topo",
+      "label_ctfidf": "lua cheia lua cheia"
+    },
+    {
+      "topic_id": 73,
+      "estrato": "topo",
+      "label_ctfidf": "ipad a16 gb"
+    },
+    {
+      "topic_id": 93,
+      "estrato": "topo",
+      "label_ctfidf": "stick fire tv fire"
+    },
+    {
+      "topic_id": 95,
+      "estrato": "topo",
+      "label_ctfidf": "ddr5 5600mhz memória"
+    },
+    {
+      "topic_id": 57,
+      "estrato": "topo",
+      "label_ctfidf": "headset gamer headset gamer"
+    },
+    {
+      "topic_id": 70,
+      "estrato": "topo",
+      "label_ctfidf": "nvme pcie 2280"
+    },
+    {
+      "topic_id": 35,
+      "estrato": "anomalia",
+      "label_ctfidf": "iphone apple iphone 16"
+    },
+    {
+      "topic_id": 5,
+      "estrato": "ruidoso",
+      "label_ctfidf": "portanto além disso disso"
+    },
+    {
+      "topic_id": 12,
+      "estrato": "ruidoso",
+      "label_ctfidf": "cidade portanto além disso"
+    },
+    {
+      "topic_id": 146,
+      "estrato": "nicho",
+      "label_ctfidf": "privacidade empresas mhz"
+    },
+    {
+      "topic_id": 147,
+      "estrato": "nicho",
+      "label_ctfidf": "água data centers centers"
+    },
+    {
+      "topic_id": 0,
+      "estrato": "multi_tema",
+      "label_ctfidf": "artemis missão nasa"
+    }
+  ],
+  "perguntas_rag": [
+    {
+      "id": "q1",
+      "pergunta": "O que aconteceu com a missão Artemis 2?",
+      "respondivel": true
+    },
+    {
+      "id": "q2",
+      "pergunta": "Por que o iPhone 16 da Apple está em destaque nas notícias?",
+      "respondivel": true
+    },
+    {
+      "id": "q3",
+      "pergunta": "O que as notícias dizem sobre memórias RAM DDR5?",
+      "respondivel": true
+    },
+    {
+      "id": "q4",
+      "pergunta": "Quais avanços no tratamento do câncer aparecem nas notícias?",
+      "respondivel": true
+    },
+    {
+      "id": "q5",
+      "pergunta": "O que as notícias dizem sobre as fases da Lua em julho de 2026?",
+      "respondivel": true
+    },
+    {
+      "id": "q6",
+      "pergunta": "Qual é a receita de bolo de cenoura?",
+      "respondivel": false
+    },
+    {
+      "id": "q7",
+      "pergunta": "Qual é o preço da ação da Apple hoje?",
+      "respondivel": false
+    },
+    {
+      "id": "q8",
+      "pergunta": "Qual smartphone devo comprar em 2027?",
+      "respondivel": false
+    }
+  ]
+}
