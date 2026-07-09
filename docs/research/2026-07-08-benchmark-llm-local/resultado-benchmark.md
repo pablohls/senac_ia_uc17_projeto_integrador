@@ -29,11 +29,22 @@
 
 > Falha = a chamada terminou sem NENHUM token de conteúdo (ex.: modelo *thinking* estourou o budget só raciocinando). Itens com falha ficam fora da avaliação cega daquele modelo.
 
-## Qualidade (avaliação cega) — PENDENTE
+## Qualidade (avaliação cega) — NÃO EXECUTADA (dispensada por decisão da equipe)
 
-A pontuação humana ainda não foi realizada. Próximos passos (protocolo §6.4): ≥ 2 integrantes preenchem cópias de `avaliacao_cega.csv` (rubrica 1–5, SEM abrir `mapa_cego.json`) e rodam `poetry run python scripts/benchmark_llm.py consolidar --avaliacoes <arquivos.csv>`.
+A pontuação humana foi formalmente dispensada em 2026-07-09. Justificativa:
+
+- **`qwen3.5:9b` foi eliminado por confiabilidade**, não por qualidade: 0% de saída sob o contrato de produção (512 tokens), 34% de falha mesmo com 8× o budget, ~17s até o 1º token útil. Nenhuma nota de qualidade reverteria a eliminação.
+- Entre os dois finalistas (ambos 100% confiáveis), `qwen2.5:14b` vence todas as métricas medidas — latência de 1º token (0,56s vs 1,08s) e throughput (38 vs 32 tok/s), com VRAM equivalente — e **ambos recusaram honestamente as 3 pegadinhas RAG** (sinal parcial do critério eliminatório de fidelidade, protocolo §7).
+- O vencedor em desempenho/confiabilidade coincide com o default já firmado no ADR-002. A avaliação cega só seria necessária para justificar uma **troca** de modelo — não há indício que a motive.
+
+A planilha `avaliacao_cega.csv` e o `mapa_cego.json` permanecem no repositório: a avaliação pode ser executada a posteriori, sem repetir as medições, via `poetry run python scripts/benchmark_llm.py consolidar --avaliacoes <arquivos.csv>`.
+
+## Recomendação final
+
+**Manter `qwen2.5:14b` como `insight.model`.** Sem alteração de configuração e sem mudança no ADR-002 (a decisão original fica validada pela medição empírica).
 
 ## Limitações declaradas
 
 - Amostra pequena (20 itens): sinal **qualitativo**, não significância estatística (protocolo §9).
 - Mesma quantização (Q4 default do Ollama) e mesmos prompts de produção para todos — nenhum prompt foi tunado por modelo.
+- **Qualidade textual entre `qwen2.5:14b` e `gemma3:12b` não foi pontuada por humanos** — a decisão apoia-se em confiabilidade, desempenho medido e no sinal parcial de fidelidade (recusa das pegadinhas RAG).
