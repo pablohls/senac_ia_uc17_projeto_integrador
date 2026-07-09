@@ -67,6 +67,38 @@ def construir_grafo(topic_terms: pd.DataFrame, max_nos: int) -> nx.Graph:
 # Nº padrão de pontes exibidas na tabela (top termos que conectam tópicos).
 TOP_PONTES = 5
 
+# Fallback mínimo de stopwords PT (artigos/preposições/conjunções mais comuns),
+# usado só quando o NLTK não está disponível — evita que "de/que/do…" dominem as
+# pontes sem introduzir dependência nova (NLTK já é dependência do projeto).
+_STOPWORDS_FALLBACK = {
+    "de", "do", "da", "dos", "das", "que", "em", "com", "para", "por",
+    "uma", "um", "os", "as", "no", "na", "nos", "nas", "ao", "aos",
+    "à", "às", "se", "é", "e", "ou", "the", "of", "and", "a", "o",
+}
+
+
+def _stopwords_pt() -> set[str]:
+    """Stopwords PT via NLTK (mesmo padrão de src/modelagem/topics.py); em caso
+    de indisponibilidade, degrada para um set mínimo hardcoded."""
+    try:
+        import nltk
+        from nltk.corpus import stopwords
+        nltk.download("stopwords", quiet=True)
+        return set(stopwords.words("portuguese")) | _STOPWORDS_FALLBACK
+    except Exception:
+        return set(_STOPWORDS_FALLBACK)
+
+
+def _eh_conteudo(termo: str, stops: set[str]) -> bool:
+    """True se o termo carrega conteúdo (não é stopword). Filtra apenas por
+    stopword — NÃO por tamanho, para preservar pontes curtas legítimas como
+    'ia', 'gb', '5g'. Cada palavra do n-grama é checada contra as stopwords."""
+    palavras = [p for p in termo.lower().split() if p]
+    if not palavras:
+        return False
+    # n-grama é stopword só se TODAS as suas palavras forem stopwords
+    return not all(p in stops for p in palavras)
+
 
 def extrair_pontes(
     topic_terms: pd.DataFrame,
@@ -99,8 +131,16 @@ def extrair_pontes(
         return pd.DataFrame(columns=colunas)
 
     # Multiplicidade de tópicos por termo (a partir da MESMA fonte de dados).
+    # Filtro de stopwords PT na CAMADA DE EXIBIÇÃO (Story 6.1 review fix): termos
+    # sem conteúdo ("de", "que", "do"…) dominariam as pontes e soterrariam as
+    # legítimas ("ia", "lua", "gb"), matando o valor interpretativo da tabela.
+    # Não altera o pipeline de PLN — apenas o que a tabela de pontes exibe.
+    stops = _stopwords_pt()
     topicos_por_termo = df.groupby("term")["topic_id"].apply(lambda s: sorted(set(s)))
-    pontes = [termo for termo, tids in topicos_por_termo.items() if len(tids) >= 2]
+    pontes = [
+        termo for termo, tids in topicos_por_termo.items()
+        if len(tids) >= 2 and _eh_conteudo(str(termo), stops)
+    ]
     if not pontes:
         return pd.DataFrame(columns=colunas)
 

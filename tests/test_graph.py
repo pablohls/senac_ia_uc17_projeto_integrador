@@ -124,6 +124,45 @@ class TestExtrairPontes:
         assert "Tópico 0" in linha_ia["topicos"]
         assert "Tópico 1" in linha_ia["topicos"]
 
+    def test_stopword_em_multiplos_topicos_nao_vira_ponte(self):
+        """Stopword PT ('de') presente em ambos os tópicos NÃO aparece nas pontes,
+        mas o termo curto legítimo ('ia') aparece (review fix Story 6.1)."""
+        linhas = []
+        for topic_id, termos in [
+            (0, ["ia", "de", "chatgpt", "openai"]),
+            (1, ["ia", "de", "robô", "fábrica"]),
+        ]:
+            for rank, termo in enumerate(termos, 1):
+                linhas.append({
+                    "topic_id": topic_id,
+                    "term": termo,
+                    "ctfidf_weight": 1.0 / rank,
+                    "rank": rank,
+                })
+        pontes = extrair_pontes(pd.DataFrame(linhas), _topic_info())
+        termos = set(pontes["termo"].values)
+        assert "de" not in termos          # stopword filtrada
+        assert "ia" in termos              # termo curto legítimo sobrevive
+
+    def test_bigrama_com_stopword_sobrevive(self):
+        """N-grama com ao menos uma palavra de conteúdo sobrevive ('carro de')."""
+        linhas = []
+        for topic_id, termos in [
+            (0, ["carro de", "de", "motor"]),
+            (1, ["carro de", "de", "estrada"]),
+        ]:
+            for rank, termo in enumerate(termos, 1):
+                linhas.append({
+                    "topic_id": topic_id,
+                    "term": termo,
+                    "ctfidf_weight": 1.0 / rank,
+                    "rank": rank,
+                })
+        pontes = extrair_pontes(pd.DataFrame(linhas), _topic_info())
+        termos = set(pontes["termo"].values)
+        assert "carro de" in termos        # bigrama com conteúdo sobrevive
+        assert "de" not in termos          # stopword pura filtrada
+
     def test_top_n_limita_resultado(self):
         """top_n limita o número de pontes retornadas."""
         # três tópicos compartilhando dois termos-ponte distintos
