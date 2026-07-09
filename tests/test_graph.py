@@ -5,7 +5,7 @@ Testes do grafo de co-ocorrência (Story 4.2).
 import pandas as pd
 import plotly.graph_objects as go
 
-from src.dashboard.graph import construir_grafo, figura_grafo
+from src.dashboard.graph import construir_grafo, extrair_pontes, figura_grafo
 
 
 def _topic_terms() -> pd.DataFrame:
@@ -61,3 +61,86 @@ class TestGrafoCoocorrencia:
         G = construir_grafo(vazio, max_nos=10)
         fig = figura_grafo(G)
         assert isinstance(fig, go.Figure)
+
+
+def _topic_info() -> pd.DataFrame:
+    """Labels dos tópicos do fixture (topic_id → label)."""
+    return pd.DataFrame([
+        {"topic_id": 0, "label": "IA generativa"},
+        {"topic_id": 1, "label": "Automação industrial"},
+        {"topic_id": -1, "label": "Outliers"},
+    ])
+
+
+class TestExtrairPontes:
+    def test_termo_compartilhado_vira_ponte(self):
+        """'ia' está nos tópicos 0 e 1 → aparece como ponte conectando ambos."""
+        pontes = extrair_pontes(_topic_terms(), _topic_info())
+
+        assert "ia" in pontes["termo"].values
+        linha_ia = pontes[pontes["termo"] == "ia"].iloc[0]
+        assert linha_ia["n_topicos"] == 2
+        assert linha_ia["peso"] > 0
+        # os labels dos dois tópicos conectados aparecem na descrição
+        assert "IA generativa" in linha_ia["topicos"]
+        assert "Automação industrial" in linha_ia["topicos"]
+
+    def test_termos_exclusivos_nao_sao_pontes(self):
+        """Termos de um único tópico (chatgpt, robô) não são pontes."""
+        pontes = extrair_pontes(_topic_terms(), _topic_info())
+        termos = set(pontes["termo"].values)
+        assert "chatgpt" not in termos
+        assert "robô" not in termos
+        assert "outlier" not in termos  # outliers (topic_id=-1) sempre fora
+
+    def test_sem_pontes_retorna_vazio(self):
+        """Tópicos sem termo compartilhado → DataFrame vazio, sem exceção."""
+        linhas = []
+        for topic_id, termos in [
+            (0, ["ia", "chatgpt"]),
+            (1, ["robô", "fábrica"]),
+        ]:
+            for rank, termo in enumerate(termos, 1):
+                linhas.append({
+                    "topic_id": topic_id,
+                    "term": termo,
+                    "ctfidf_weight": 1.0 / rank,
+                    "rank": rank,
+                })
+        pontes = extrair_pontes(pd.DataFrame(linhas), _topic_info())
+        assert pontes.empty
+        assert list(pontes.columns) == ["termo", "topicos", "n_topicos", "peso"]
+
+    def test_entrada_vazia_nao_quebra(self):
+        """topic_terms vazio degrada graciosamente (DataFrame vazio)."""
+        vazio = pd.DataFrame({"topic_id": [], "term": [], "ctfidf_weight": [], "rank": []})
+        pontes = extrair_pontes(vazio, _topic_info())
+        assert pontes.empty
+
+    def test_topic_info_ausente_usa_fallback(self):
+        """Sem topic_info, os tópicos conectados usam rótulo 'Tópico {id}'."""
+        pontes = extrair_pontes(_topic_terms(), None)
+        linha_ia = pontes[pontes["termo"] == "ia"].iloc[0]
+        assert "Tópico 0" in linha_ia["topicos"]
+        assert "Tópico 1" in linha_ia["topicos"]
+
+    def test_top_n_limita_resultado(self):
+        """top_n limita o número de pontes retornadas."""
+        # três tópicos compartilhando dois termos-ponte distintos
+        linhas = []
+        for topic_id, termos in [
+            (0, ["ia", "dados", "python"]),
+            (1, ["ia", "dados", "robô"]),
+            (2, ["ia", "nuvem", "api"]),
+        ]:
+            for rank, termo in enumerate(termos, 1):
+                linhas.append({
+                    "topic_id": topic_id,
+                    "term": termo,
+                    "ctfidf_weight": 1.0 / rank,
+                    "rank": rank,
+                })
+        pontes = extrair_pontes(pd.DataFrame(linhas), _topic_info(), top_n=1)
+        assert len(pontes) == 1
+        # 'ia' conecta 3 tópicos → deve ser a ponte de maior prioridade
+        assert pontes.iloc[0]["termo"] == "ia"

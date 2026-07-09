@@ -64,6 +64,73 @@ def construir_grafo(topic_terms: pd.DataFrame, max_nos: int) -> nx.Graph:
     return G
 
 
+# Nº padrão de pontes exibidas na tabela (top termos que conectam tópicos).
+TOP_PONTES = 5
+
+
+def extrair_pontes(
+    topic_terms: pd.DataFrame,
+    topic_info: pd.DataFrame | None = None,
+    top_n: int = TOP_PONTES,
+) -> pd.DataFrame:
+    """Extrai os termos-ponte: presentes nos termos representativos de ≥ 2 tópicos.
+
+    Uma "ponte" é um termo que aparece entre os termos representativos de mais de
+    um tópico — sinaliza uma pauta emergente na interseção de temas. Reusa a mesma
+    fonte de dados (`topic_terms`) e o mesmo grafo de `construir_grafo` (o `weight`
+    de cada nó = força total da co-ocorrência), sem reimplementar essa lógica.
+
+    Args:
+        topic_terms: DataFrame {topic_id, term, ctfidf_weight, rank} (contrato A3).
+        topic_info: DataFrame {topic_id, label, ...} para resolver os labels dos
+            tópicos conectados; se ausente, usa "Tópico {id}" como fallback.
+        top_n: nº máximo de pontes retornadas (ordenadas por nº de tópicos e força).
+
+    Returns:
+        DataFrame {termo, topicos, n_topicos, peso} com os top-`top_n` termos-ponte,
+        ordenado por (n_topicos, peso) desc. DataFrame vazio se não houver pontes.
+    """
+    colunas = ["termo", "topicos", "n_topicos", "peso"]
+
+    # Mesmo filtro de construir_grafo: descarta outliers e termos fora do top-N.
+    df = topic_terms[topic_terms["topic_id"] != -1].copy()
+    df = df[df["rank"] <= TERMOS_POR_TOPICO]
+    if df.empty:
+        return pd.DataFrame(columns=colunas)
+
+    # Multiplicidade de tópicos por termo (a partir da MESMA fonte de dados).
+    topicos_por_termo = df.groupby("term")["topic_id"].apply(lambda s: sorted(set(s)))
+    pontes = [termo for termo, tids in topicos_por_termo.items() if len(tids) >= 2]
+    if not pontes:
+        return pd.DataFrame(columns=colunas)
+
+    # Reusa construir_grafo p/ obter o weight (força) de cada termo. max_nos alto o
+    # suficiente (nº de termos únicos) para NÃO cortar pontes fortes antes da contagem.
+    n_termos = df["term"].nunique()
+    grafo = construir_grafo(topic_terms, max_nos=n_termos)
+
+    labels = {}
+    if topic_info is not None and not topic_info.empty:
+        labels = topic_info.set_index("topic_id")["label"].to_dict()
+
+    linhas = []
+    for termo in pontes:
+        tids = topicos_por_termo[termo]
+        peso = float(grafo.nodes[termo]["weight"]) if termo in grafo.nodes else 0.0
+        linhas.append({
+            "termo": termo,
+            "topicos": ", ".join(str(labels.get(t, f"Tópico {t}")) for t in tids),
+            "n_topicos": len(tids),
+            "peso": peso,
+        })
+
+    resultado = pd.DataFrame(linhas, columns=colunas)
+    resultado = resultado.sort_values(
+        by=["n_topicos", "peso"], ascending=False
+    ).head(top_n).reset_index(drop=True)
+    return resultado
+
+
 # Fração das arestas mais fortes exibidas (as fracas viram poluição visual).
 FRACAO_ARESTAS = 0.5
 # Fração dos nós mais fortes que recebem rótulo fixo (o resto fica no hover).
@@ -131,7 +198,8 @@ def figura_grafo(G: nx.Graph, titulo: str = "Co-ocorrência de termos") -> go.Fi
             line=dict(width=1, color="white"),
         ),
         hovertext=[
-            f"<b>{n_}</b><br>força: {G.nodes[n_]['weight']:.2f}<br>comunidade: tópico {G.nodes[n_]['topic']}"
+            f"<b>{n_}</b><br>força: {G.nodes[n_]['weight']:.2f}<br>"
+            f"comunidade: tópico {G.nodes[n_]['topic']}"
             for n_ in nos
         ],
         hoverinfo="text",
