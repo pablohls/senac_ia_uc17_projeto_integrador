@@ -126,6 +126,65 @@ class TestInsightParams:
         assert cfg.dados_insight == "dados/insight"
 
 
+class TestChatStream:
+    """Streaming token a token (Story 5.5) — mesmo contrato de degradação."""
+
+    @staticmethod
+    def _chunk(texto):
+        return SimpleNamespace(
+            choices=[SimpleNamespace(delta=SimpleNamespace(content=texto))]
+        )
+
+    def test_sucesso_gera_tokens(self):
+        from src.common.llm import chat_stream
+
+        cliente = MagicMock()
+        cliente.chat.completions.create.return_value = iter(
+            [self._chunk("Olá"), self._chunk(None), self._chunk(" mundo")]
+        )
+        with patch("src.common.llm.OpenAI", return_value=cliente):
+            tokens = list(chat_stream(MENSAGENS, temperature=0.3, max_tokens=20))
+        assert tokens == ["Olá", " mundo"]  # chunks sem content são pulados
+
+    def test_falha_gera_stream_vazio_sem_excecao(self):
+        from src.common.llm import chat_stream
+
+        with patch("src.common.llm.OpenAI", side_effect=ConnectionError("refused")):
+            assert list(chat_stream(MENSAGENS, temperature=0.3, max_tokens=20)) == []
+
+    def test_falha_no_meio_do_stream_encerra_gracioso(self):
+        from src.common.llm import chat_stream
+
+        def _stream_quebrado():
+            yield self._chunk("parcial")
+            raise TimeoutError("caiu no meio")
+
+        cliente = MagicMock()
+        cliente.chat.completions.create.return_value = _stream_quebrado()
+        with patch("src.common.llm.OpenAI", return_value=cliente):
+            tokens = list(chat_stream(MENSAGENS, temperature=0.3, max_tokens=20))
+        assert tokens == ["parcial"]  # devolveu o que deu e encerrou sem raise
+
+
+class TestLlmDisponivel:
+    """Ping de disponibilidade (flag tem_rag da Story 5.5)."""
+
+    def test_endpoint_no_ar_devolve_true(self):
+        from src.common.llm import llm_disponivel
+
+        cliente = MagicMock()
+        with patch("src.common.llm.OpenAI", return_value=cliente):
+            assert llm_disponivel() is True
+
+    def test_endpoint_fora_devolve_false_sem_excecao(self):
+        from src.common.llm import llm_disponivel
+
+        cliente = MagicMock()
+        cliente.with_options.return_value.models.list.side_effect = ConnectionError()
+        with patch("src.common.llm.OpenAI", return_value=cliente):
+            assert llm_disponivel() is False
+
+
 @pytest.mark.skipif(not _ollama_no_ar(), reason="Ollama não está no ar (smoke opcional)")
 class TestSmokeOllama:
     """Prova provider-agnostic contra o endpoint local real (AC4).

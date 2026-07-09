@@ -84,3 +84,62 @@ def chat(
             exc,
         )
         return None
+
+
+def chat_stream(
+    messages: list[dict],
+    *,
+    temperature: float,
+    max_tokens: int,
+):
+    """Como :func:`chat`, mas gera a resposta token a token (Story 5.5 — streaming).
+
+    Yields:
+        Fragmentos de texto conforme o LLM gera. Em QUALQUER falha (antes ou
+        durante o stream), o gerador termina silenciosamente com log de aviso —
+        um stream vazio/interrompido é o sinal de indisponibilidade para o
+        chamador (mesmo contrato de degradação graciosa do `chat()`).
+    """
+    try:
+        cliente = _criar_cliente()
+        stream = cliente.chat.completions.create(
+            model=config.insight.model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=True,
+        )
+        for chunk in stream:
+            delta = chunk.choices[0].delta.content if chunk.choices else None
+            if delta:
+                yield delta
+    except Exception as exc:  # noqa: BLE001 — degradação graciosa (stream vazio)
+        logger.warning(
+            "LLM indisponível em %s durante streaming (%s: %s) — stream encerrado.",
+            config.insight.base_url,
+            type(exc).__name__,
+            exc,
+        )
+        return
+
+
+# Timeout curto do ping de disponibilidade: é verificação de UI (o dashboard
+# não pode travar aguardando um endpoint pendurado) — não é parâmetro de
+# pipeline tunável como os de `InsightParams`.
+_PING_TIMEOUT_S = 3.0
+
+
+def llm_disponivel() -> bool:
+    """Ping barato ao endpoint (GET /models) — alimenta a flag `tem_rag` (5.5).
+
+    Returns:
+        ``True`` se o endpoint respondeu; ``False`` em qualquer falha.
+    """
+    try:
+        _criar_cliente().with_options(timeout=_PING_TIMEOUT_S).models.list()
+        return True
+    except Exception as exc:  # noqa: BLE001 — flag de disponibilidade, nunca exceção
+        logger.info(
+            "Endpoint LLM (%s) não respondeu ao ping: %s", config.insight.base_url, exc
+        )
+        return False
