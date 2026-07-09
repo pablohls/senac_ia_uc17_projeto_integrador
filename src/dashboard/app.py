@@ -15,7 +15,7 @@ import plotly.express as px
 import streamlit as st
 
 from src.common.llm import llm_disponivel
-from src.dashboard.graph import construir_grafo, figura_grafo
+from src.dashboard.graph import PALETA, construir_grafo, extrair_pontes, figura_grafo
 from src.dashboard.insight import aplicar_insight, carregar_briefings
 from src.rag.responder import MSG_INDISPONIVEL, responder_stream
 
@@ -24,6 +24,19 @@ st.set_page_config(
     page_title="TrendRadar - Dashboard",
     page_icon="📈",
     layout="wide"
+)
+
+# CSS pontual (Story 6.1): apenas espaçamento entre seções/headers — sem
+# componentes funcionais em HTML. Único bloco de style do dashboard.
+st.markdown(
+    """
+    <style>
+    .block-container { padding-top: 3rem; }
+    h2 { margin-top: 0.6rem; }
+    hr { margin: 1.4rem 0; }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
 # -----------------------------------------------------------------------------
@@ -153,6 +166,23 @@ else:
     st.caption("ℹ️ Camada 2 (LSTM) indisponível — exibindo apenas o score estatístico (Camada 1).")
 
 # -----------------------------------------------------------------------------
+# Story 6.1: Cards de métricas (visão geral do corpus no topo do dashboard)
+# -----------------------------------------------------------------------------
+n_docs = df_corpus_meta["doc_id"].nunique()
+n_topicos_validos = len(df_ranking)
+_datas = pd.to_datetime(df_doc_topics["data"], errors="coerce").dropna()
+periodo = f"{_datas.min():%d/%m/%Y} – {_datas.max():%d/%m/%Y}" if not _datas.empty else "—"
+top_trend = str(df_ranking.iloc[0]["label"]) if not df_ranking.empty else "—"
+
+card1, card2, card3, card4 = st.columns(4)
+card1.metric("📄 Documentos", f"{n_docs:,}".replace(",", "."))
+card2.metric("🗂️ Tópicos válidos", n_topicos_validos)
+card3.metric("📅 Período coberto", periodo)
+card4.metric("🚀 Top trend", top_trend)
+
+st.divider()
+
+# -----------------------------------------------------------------------------
 # Task 2: Painel Principal (Lista Ranqueada)
 # -----------------------------------------------------------------------------
 st.header("🔥 Em Alta")
@@ -202,7 +232,9 @@ st.divider()
 # Task 3: Drill-down do Tópico
 # -----------------------------------------------------------------------------
 st.header("🔎 Drill-down de Tópicos")
-st.markdown("Selecione um tópico para aprofundar na sua evolução, palavras-chave e artigos originais.")
+st.markdown(
+    "Selecione um tópico para aprofundar na sua evolução, palavras-chave e artigos originais."
+)
 
 # Selectbox usando o Label, mas guardando o ID do tópico para os filtros
 opcoes_topicos = df_ranking.set_index("topic_id")["label"].to_dict()
@@ -251,6 +283,7 @@ if topico_selecionado_id is not None:
                 title=f"Evolução no Tempo: {opcoes_topicos[topico_selecionado_id]}",
                 markers=True,
                 labels={"data": "Data", "count": "Artigos por dia"},
+                color_discrete_sequence=PALETA,
             )
             st.plotly_chart(fig, width='stretch')
         else:
@@ -287,17 +320,33 @@ if topico_selecionado_id is not None:
 st.divider()
 
 # -----------------------------------------------------------------------------
-# Story 4.2: Grafo de Co-ocorrência de Termos
+# Story 6.1: Pontes entre tópicos (reenquadra o Grafo de Co-ocorrência da 4.2)
 # -----------------------------------------------------------------------------
-st.header("🕸️ Grafo de Co-ocorrência")
+st.header("🔗 Pontes entre tópicos")
 st.markdown(
-    "Termos que aparecem juntos nos mesmos tópicos. **Cor** = comunidade "
-    "(tópico dominante); **tamanho** = força do termo; **espessura da aresta** = "
-    "força da co-ocorrência. Passe o mouse sobre um nó para ver o nome e a "
-    "comunidade — só os termos mais fortes têm rótulo fixo."
+    "Uma **ponte** é um termo que aparece entre as palavras-chave de mais de um "
+    "tópico — sinaliza uma **pauta emergente na interseção de temas**. Quanto mais "
+    "tópicos um termo conecta (e quanto mais forte sua co-ocorrência), mais central "
+    "ele é para entender onde os assuntos se cruzam."
 )
 
-max_nos = st.slider("Número de termos no grafo:", min_value=10, max_value=80, value=30, step=5)
+df_pontes = extrair_pontes(df_topic_terms, df_topic_info)
+if df_pontes.empty:
+    st.info(
+        "Nenhum termo-ponte no período — os termos representativos estão "
+        "concentrados em tópicos distintos, sem interseção relevante entre eles."
+    )
+else:
+    st.dataframe(
+        df_pontes.rename(columns={
+            "termo": "Termo",
+            "topicos": "Tópicos conectados",
+            "n_topicos": "Nº de tópicos",
+            "peso": "Força",
+        }).style.format({"Força": "{:.2f}"}),
+        width='stretch',
+        hide_index=True,
+    )
 
 
 @st.cache_data
@@ -307,10 +356,19 @@ def _grafo_cacheado(topic_terms: pd.DataFrame, max_nos: int):
     return figura_grafo(G)
 
 
-st.plotly_chart(
-    _grafo_cacheado(df_topic_terms, max_nos),
-    width='stretch',
-)
+# Story 4.2 preservada: o grafo completo continua disponível, só recolhido.
+with st.expander("Visão avançada: grafo completo"):
+    st.markdown(
+        "Termos que aparecem juntos nos mesmos tópicos. **Cor** = comunidade "
+        "(tópico dominante); **tamanho** = força do termo; **espessura da aresta** = "
+        "força da co-ocorrência. Passe o mouse sobre um nó para ver o nome e a "
+        "comunidade — só os termos mais fortes têm rótulo fixo."
+    )
+    max_nos = st.slider("Número de termos no grafo:", min_value=10, max_value=80, value=30, step=5)
+    st.plotly_chart(
+        _grafo_cacheado(df_topic_terms, max_nos),
+        width='stretch',
+    )
 
 st.divider()
 

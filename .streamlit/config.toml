@@ -1,0 +1,9 @@
+# Tema do TrendRadar (Story 6.1) — identidade visual consistente com a paleta
+# do grafo de co-ocorrência (PALETA em src/dashboard/graph.py). Recurso NATIVO
+# do Streamlit: nenhuma dependência nova é necessária para o tema.
+[theme]
+primaryColor = "#0b7285"           # PALETA[0] — teal do grafo (Story 4.2)
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#eef4f6"  # teal bem claro, deriva do primaryColor
+textColor = "#1a2b32"
+font = "sans serif"
