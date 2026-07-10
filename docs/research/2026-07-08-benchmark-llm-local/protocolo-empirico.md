@@ -9,7 +9,7 @@
 
 ## 1. Hipótese
 
-> H0: para as tarefas *grounded* do TrendRadar (rotulação, "por que sobe", RAG), a diferença de qualidade em PT-BR entre os 3 finalistas é pequena, e **Qwen2.5-14B** é ≥ que os demais.
+> H0: para as tarefas *grounded* do SONAR (rotulação, "por que sobe", RAG), a diferença de qualidade em PT-BR entre os 3 finalistas é pequena, e **Qwen2.5-14B** é ≥ que os demais.
 >
 > H1: algum modelo mais novo (Qwen3.5-9B / Gemma 3-12B) supera o Qwen2.5-14B em qualidade PT-BR **ou** empata em qualidade com latência/VRAM materialmente melhores.
 

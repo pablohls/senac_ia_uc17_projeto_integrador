@@ -1,5 +1,5 @@
 # ==========================================================================
-# TrendRadar — Configuração central do pipeline
+# SONAR — Configuração central do pipeline
 # ==========================================================================
 # Regra do projeto (Coding Standards): NENHUM número mágico no código.
 # Todo parâmetro ajustável da pipeline mora aqui e é carregado/validado por
@@ -24,13 +24,13 @@ coleta:
     # Filtro opcional por categoria (vazio = todas as categorias).
     categorias: []
     # Identificação enviada ao servidor (NFR4 — coleta educada).
-    user_agent: "TrendRadar/0.1 (projeto integrador IA; coleta academica)"
+    user_agent: "SONAR/0.1 (projeto integrador IA; coleta academica)"
     # Pausa entre requisições, em segundos (rate-limit ~1 req/s, NFR4).
     rate_limit_s: 1.0
   # Parâmetros da extração de texto (Story 1.3 — dataset congelado A1).
   extract:
     # Identificação enviada ao servidor (NFR4).
-    user_agent: "TrendRadar/0.1 (projeto integrador IA; coleta academica)"
+    user_agent: "SONAR/0.1 (projeto integrador IA; coleta academica)"
     # Pausa entre downloads de artigos, em segundos (~1 req/s, NFR4).
     rate_limit_s: 1.0
     # Tempo máximo por requisição, em segundos.
@@ -45,7 +45,7 @@ coleta:
     # Janela histórica em meses (filtra por lastmod >= 1º dia do mês mais antigo).
     meses: 4
     # Identificação enviada ao servidor (NFR4).
-    user_agent: "TrendRadar/0.1 (projeto integrador IA; coleta academica)"
+    user_agent: "SONAR/0.1 (projeto integrador IA; coleta academica)"
     # Pausa entre requisições, em segundos (~1 req/s, NFR4).
     rate_limit_s: 1.0
 

@@ -1,4 +1,4 @@
-"""Cliente LLM provider-agnostic do TrendRadar (Fase 5 — ADR-002, Story 5.1).
+"""Cliente LLM provider-agnostic do SONAR (Fase 5 — ADR-002, Story 5.1).
 
 Uma única função — :func:`chat` — fala com qualquer endpoint OpenAI-compatible
 (Ollama local no demo, endpoint remoto no dev), com `base_url` e `model` vindos

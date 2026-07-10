@@ -33,7 +33,7 @@ MSG_INDISPONIVEL = (
 )
 
 # Prompt restritivo (AC1/AC3): responder SÓ com os trechos; admitir ausência.
-PROMPT_RAG = """Você é o assistente do TrendRadar e responde perguntas sobre \
+PROMPT_RAG = """Você é o assistente do SONAR e responde perguntas sobre \
 notícias de tecnologia em PT-BR.
 
 Responda à pergunta usando SOMENTE as informações dos trechos de artigos abaixo.

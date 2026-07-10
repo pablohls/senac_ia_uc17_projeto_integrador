@@ -1,4 +1,4 @@
-# Estudo de Caso & Ética/LGPD — TrendRadar (Story 4.4)
+# Estudo de Caso & Ética/LGPD — SONAR (Story 4.4)
 
 ## Parte 1 — Estudo de caso: uma tendência detectada
 
@@ -60,7 +60,7 @@ e mitigado pela própria validação.
 
 ### 2.1 Natureza dos dados: públicos e editoriais
 
-O TrendRadar coleta **exclusivamente conteúdo editorial público** — notícias
+O SONAR coleta **exclusivamente conteúdo editorial público** — notícias
 publicadas abertamente por portais de tecnologia (Olhar Digital e Canaltech).
 Não há coleta de dados de usuários, comentários, perfis ou qualquer conteúdo
 de acesso restrito.
@@ -70,7 +70,7 @@ de acesso restrito.
 - **Descoberta via sitemap oficial:** as URLs vêm dos sitemaps que os próprios
   portais publicam para indexação — o mesmo mecanismo usado por buscadores.
 - **Identificação transparente:** todas as requisições enviam o User-Agent
-  `TrendRadar/0.1 (projeto integrador IA; coleta academica)`, permitindo que
+  `SONAR/0.1 (projeto integrador IA; coleta academica)`, permitindo que
   os portais identifiquem e, se quiserem, bloqueiem o robô.
 - **Rate-limiting educado:** ~1 requisição por segundo (`rate_limit_s: 1.0`
   em `config/config.yaml`), sem paralelismo agressivo — a coleta completa
@@ -86,7 +86,7 @@ O pipeline **não coleta nem armazena dados pessoais**:
   `texto` (corpo editorial), `fonte`, `categoria` e `url` — todos referentes
   à **matéria jornalística**, não a pessoas.
 - Nomes citados em notícias (executivos, autoridades) são informação
-  jornalística de interesse público já publicada pela fonte — o TrendRadar
+  jornalística de interesse público já publicada pela fonte — o SONAR
   não cruza, enriquece nem perfila esses dados (art. 7º, LGPD — legítimo
   interesse/uso acadêmico; art. 4º, I — fins exclusivamente acadêmicos).
 - Não há cadastro de usuários no dashboard; nenhum dado de quem usa o
@@ -129,7 +129,7 @@ antes de agir — o sistema recomenda investigação, não conclusão.
 
 ```bash
 poetry install                                  # 1. ambiente isolado + dependências
-poetry run trendradar                           # 2. pipeline offline (PLN → tópicos → scores)
+poetry run sonar                           # 2. pipeline offline (PLN → tópicos → scores)
 poetry run streamlit run src/dashboard/app.py   # 3. dashboard de tendências
 ```
 

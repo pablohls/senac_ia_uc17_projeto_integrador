@@ -84,7 +84,7 @@ def main() -> None:
 poetry run python -m src.scores.run
 
 # Integrado (pipeline completo)
-poetry run trendradar  # (quando run_all.py chamar)
+poetry run sonar  # (quando run_all.py chamar)
 ```
 
 ---

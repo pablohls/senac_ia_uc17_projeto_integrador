@@ -1,4 +1,4 @@
-"""Carregamento e validação da configuração central do TrendRadar.
+"""Carregamento e validação da configuração central do SONAR.
 
 Toda a pipeline lê seus parâmetros a partir de `config/config.yaml` através de
 um objeto pydantic — nunca de constantes espalhadas no código (Coding Standards).
@@ -58,7 +58,7 @@ class SitemapParams(BaseModel):
         default_factory=list, description="Filtro opcional por categoria (vazio = todas)."
     )
     user_agent: str = Field(
-        "TrendRadar/0.1 (projeto integrador IA; coleta academica)",
+        "SONAR/0.1 (projeto integrador IA; coleta academica)",
         description="Identificação enviada ao servidor (NFR4).",
     )
     rate_limit_s: float = Field(1.0, ge=0, description="Pausa entre requisições, em segundos.")
@@ -68,7 +68,7 @@ class ExtractParams(BaseModel):
     """Parâmetros da extração de texto (Story 1.3 — dataset congelado A1)."""
 
     user_agent: str = Field(
-        "TrendRadar/0.1 (projeto integrador IA; coleta academica)",
+        "SONAR/0.1 (projeto integrador IA; coleta academica)",
         description="Identificação enviada ao servidor (NFR4).",
     )
     rate_limit_s: float = Field(1.0, ge=0, description="Pausa entre downloads, em segundos.")
@@ -84,7 +84,7 @@ class CanaltechParams(BaseModel):
     index_url: str = Field(..., description="Sitemap index do Canaltech.")
     meses: int = Field(4, gt=0, description="Janela histórica em meses (filtra por lastmod).")
     user_agent: str = Field(
-        "TrendRadar/0.1 (projeto integrador IA; coleta academica)",
+        "SONAR/0.1 (projeto integrador IA; coleta academica)",
         description="Identificação enviada ao servidor (NFR4).",
     )
     rate_limit_s: float = Field(1.0, ge=0, description="Pausa entre requisições, em segundos.")

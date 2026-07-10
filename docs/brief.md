@@ -1,4 +1,4 @@
-# Project Brief: Mapeador de Tendências em Tecnologia (TrendRadar)
+# Project Brief: Mapeador de Tendências em Tecnologia (SONAR)
 
 > **Status:** Draft (YOLO) — gerado por @analyst (Atlas) em 2026-06-08
 > **Base:** `docs/briefing.md` + análise de viabilidade
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-**TrendRadar** é uma ferramenta de inteligência que monitora portais de tecnologia em português, agrupa automaticamente as notícias por assunto e identifica **quais tópicos estão ganhando tração** — sinalizando tendências emergentes antes que elas se tornem óbvias.
+**SONAR** é uma ferramenta de inteligência que monitora portais de tecnologia em português, agrupa automaticamente as notícias por assunto e identifica **quais tópicos estão ganhando tração** — sinalizando tendências emergentes antes que elas se tornem óbvias.
 
 - **Conceito:** pipeline de PLN + Deep Learning que transforma um fluxo de notícias (via RSS) em um painel de "tópicos em ascensão" no setor de Tecnologia/Ciência.
 - **Problema resolvido:** o volume de publicações sobre tecnologia é grande demais para acompanhamento manual; identificar o que está crescendo exige leitura e intuição que não escalam.
@@ -237,4 +237,4 @@ Análise de viabilidade (por @analyst) concluiu que: a fonte original do briefin
 
 ### PM Handoff
 
-Este Project Brief fornece o contexto completo do **Mapeador de Tendências em Tecnologia (TrendRadar)**. @pm (Morgan): inicie em 'PRD Generation Mode', revise o brief a fundo e trabalhe com o usuário para criar o PRD seção por seção, pedindo esclarecimentos ou sugerindo melhorias — com atenção especial ao prazo de 2 semanas e ao risco de histórico temporal.
+Este Project Brief fornece o contexto completo do **Mapeador de Tendências em Tecnologia (SONAR)**. @pm (Morgan): inicie em 'PRD Generation Mode', revise o brief a fundo e trabalhe com o usuário para criar o PRD seção por seção, pedindo esclarecimentos ou sugerindo melhorias — com atenção especial ao prazo de 2 semanas e ao risco de histórico temporal.

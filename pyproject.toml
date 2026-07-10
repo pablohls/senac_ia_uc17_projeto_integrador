@@ -1,8 +1,8 @@
 [project]
-name = "trendradar"
+name = "sonar"
 version = "0.1.0"
 description = "Mapeador de tendências em tecnologia (PLN + Deep Learning) — Projeto Integrador UC17 / SENAC"
-authors = [{ name = "Equipe TrendRadar (UC17)" }]
+authors = [{ name = "Equipe SONAR (UC17)" }]
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12,<4.0"
@@ -11,7 +11,7 @@ requires-python = ">=3.12,<4.0"
 dynamic = ["dependencies"]
 
 [project.scripts]
-trendradar = "run_all:main"
+sonar = "run_all:main"
 
 [tool.poetry]
 packages = [{ include = "src" }]

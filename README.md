@@ -1,14 +1,15 @@
-# TrendRadar — Mapeador de Tendências em Tecnologia
+# SONAR — Sistema de Observação de Narrativas e Assuntos Relevantes
 
 Projeto Integrador final do curso de **Inteligência Artificial (1200h) — SENAC / UC17**.
 
-O **TrendRadar** é um pipeline de PLN + Deep Learning que monitora portais de tecnologia
+O **SONAR** é um pipeline de PLN + Deep Learning que monitora portais de tecnologia
 em português, agrupa automaticamente as notícias por assunto e identifica **quais tópicos
 estão ganhando tração** — sinalizando tendências emergentes antes que se tornem óbvias.
 
-> **Nota de marca:** na interface, o produto se apresenta como
-> **SONAR — Sistema de Observação de Narrativas e Assuntos Relevantes**.
-> O código, o pacote Python e este repositório mantêm o nome interno TrendRadar.
+> **Nota de marca:** o projeto nasceu com o codinome interno *TrendRadar* e foi
+> rebatizado **SONAR** em 2026-07-09 — nome do pacote, comandos e documentação foram
+> unificados. Documentos históricos podem citar o codinome de época; o artefato
+> congelado do benchmark (`avaliacao_cega.csv`) o preserva por reprodutibilidade.
 
 ## Visão geral do pipeline
 
@@ -63,7 +64,7 @@ automaticamente.
 
 ```bash
 poetry install                                  # 1. cria o ambiente isolado e instala tudo
-poetry run trendradar                           # 2. pipeline offline (PLN → tópicos → scores)
+poetry run sonar                           # 2. pipeline offline (PLN → tópicos → scores)
 poetry run streamlit run src/dashboard/app.py   # 3. abre o dashboard de tendências
 ```
 
@@ -72,7 +73,7 @@ poetry run streamlit run src/dashboard/app.py   # 3. abre o dashboard de tendên
 > (passo 3) sem precisar do passo 2. Rode o passo 2 para regenerar tudo do zero.
 
 > O comando 2 parte do **corpus congelado** (`dados/raw/corpus.parquet`). Para
-> atualizar a coleta: `poetry run trendradar --com-coleta` — o modo é **incremental**
+> atualizar a coleta: `poetry run sonar --com-coleta` — o modo é **incremental**
 > (baixa só os artigos novos e agrega ao corpus; minutos, não horas). Reconstrução
 > total: `poetry run python -m src.coleta.extract --completo` (~2h, rate-limit educado).
 > Validação por backtest (Story 3.4): `poetry run python -m src.scores.backtest`.

@@ -10,7 +10,7 @@
 
 ## Contexto
 
-O TrendRadar **descobre** e **quantifica** tendências muito bem (BERTopic + Trend Score de 2 camadas), mas tem um ponto cego: **não as explica em linguagem humana**. O dashboard entrega listas de termos c-TF-IDF (ex.: `iphone apple`) e curvas — o usuário precisa interpretar sozinho. É exatamente aqui que o Google Trends também falha (dá curva, não explicação), e onde uma camada de IA generativa gera maior retorno de produto e de apresentação.
+O SONAR **descobre** e **quantifica** tendências muito bem (BERTopic + Trend Score de 2 camadas), mas tem um ponto cego: **não as explica em linguagem humana**. O dashboard entrega listas de termos c-TF-IDF (ex.: `iphone apple`) e curvas — o usuário precisa interpretar sozinho. É exatamente aqui que o Google Trends também falha (dá curva, não explicação), e onde uma camada de IA generativa gera maior retorno de produto e de apresentação.
 
 Três forças moldam a decisão:
 

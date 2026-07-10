@@ -14,7 +14,7 @@
 | Tipo | Pipeline Python de PLN/Deep Learning (não é serviço TS/JS do framework AIOX) |
 | Linguagem primária | Python 3.12 |
 | Gerência de deps | Poetry (`pyproject.toml`) |
-| Entry-point | `trendradar = run_all:main` (CLI) + `streamlit run src/dashboard/app.py` |
+| Entry-point | `sonar = run_all:main` (CLI) + `streamlit run src/dashboard/app.py` |
 | Config | Centralizada em `config/config.yaml` → validada por pydantic (`src/common/config.py`). **Regra de ouro do projeto: nenhum número mágico no código.** |
 | Persistência entre fases | **Parquet** via `src/common/io.py` (IO centralizado) + `dados/run_manifest.json` (reprodutibilidade) |
 | Testes | pytest — 89 passando |

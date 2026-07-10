@@ -64,6 +64,6 @@ models/
 #   dados/scores/, dados/run_manifest.json e embeddings_index.parquet —
 #   leves; o dashboard funciona logo após o clone, sem rodar o pipeline.
 # IGNORADOS (pesados e 100% regeneráveis a partir do corpus A1 via
-#   `poetry run trendradar`):
+#   `poetry run sonar`):
 dados/processed/corpus_clean.parquet
 dados/processed/embeddings.npy

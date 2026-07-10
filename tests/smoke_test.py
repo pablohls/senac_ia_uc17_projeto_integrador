@@ -1,4 +1,4 @@
-"""Smoke test do ambiente TrendRadar.
+"""Smoke test do ambiente SONAR.
 
 O "checklist de obra": antes de qualquer integrante começar a fase dele, este
 teste confirma que a fundação está de pé — bibliotecas instaladas, GPU detectada

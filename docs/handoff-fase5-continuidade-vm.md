@@ -6,7 +6,7 @@
 - **De:** sessão VM GPU 16GB (implementação — @devops/@dev/@architect)
 - **Para:** próxima sessão (qualquer máquina; ver §4 para diferenças de ambiente)
 - **Branch:** `feat/fases-2-4-pipeline` — ⚠️ **10 commits locais SEM push** (ver §3)
-- **Pipeline:** `trendradar-camada-llm`
+- **Pipeline:** `sonar-camada-llm`
 
 ---
 

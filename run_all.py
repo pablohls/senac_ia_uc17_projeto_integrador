@@ -1,4 +1,4 @@
-"""Orquestrador do pipeline TrendRadar.
+"""Orquestrador do pipeline SONAR.
 
 Encadeia as fases offline do pipeline (o dashboard é servido à parte):
 
@@ -9,8 +9,8 @@ educado (~2h). Sem a flag, o pipeline parte do corpus congelado existente em
 `dados/raw/corpus.parquet` (contrato A1 — reprodutibilidade do demo).
 
 Uso:
-  poetry run trendradar                # PLN + scores a partir do corpus existente
-  poetry run trendradar --com-coleta   # inclui a coleta (sitemap + extract + canaltech)
+  poetry run sonar                # PLN + scores a partir do corpus existente
+  poetry run sonar --com-coleta   # inclui a coleta (sitemap + extract + canaltech)
 """
 
 from __future__ import annotations
@@ -31,13 +31,13 @@ def _rodar_coleta() -> None:
     print("FASE 1: COLETA (sitemap → extract → canaltech)")
     print("=" * 60)
     sitemap.main()
-    extract.main(argv=[])  # argv=[] evita herdar os args do CLI `trendradar`
+    extract.main(argv=[])  # argv=[] evita herdar os args do CLI `sonar`
     canaltech.main()
 
 
 def main() -> None:
-    """Ponto de entrada do CLI `trendradar` (registrado em pyproject.toml)."""
-    parser = argparse.ArgumentParser(description="Pipeline TrendRadar (coleta → PLN → scores)")
+    """Ponto de entrada do CLI `sonar` (registrado em pyproject.toml)."""
+    parser = argparse.ArgumentParser(description="Pipeline SONAR (coleta → PLN → scores)")
     parser.add_argument(
         "--com-coleta", action="store_true",
         help="Inclui a fase de coleta (~2h com rate-limit educado). "

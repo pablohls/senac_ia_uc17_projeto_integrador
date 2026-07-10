@@ -1,4 +1,4 @@
-# TrendRadar — Mapeador de Tendências em Tecnologia: Fullstack Architecture Document
+# SONAR — Mapeador de Tendências em Tecnologia: Fullstack Architecture Document
 
 > **Autor:** @architect (Aria) | **Data:** 2026-06-09 | **Versão:** 1.0
 > **Entradas:** `docs/prd.md` (v1.1), `docs/design/trend-score.md`, `docs/research/2026-06-08-backfill-historico/findings.md`
@@ -9,7 +9,7 @@
 
 ## Introduction
 
-Este documento descreve a arquitetura completa do **TrendRadar** — um pipeline batch de PLN + Deep Learning, offline e reprodutível, com dashboard Streamlit. Diferente do template fullstack web padrão, **não há frontend/backend web, API REST, autenticação nem banco transacional**: o sistema é um monólito batch em Python cujo acoplamento entre fases se dá **exclusivamente por contratos de arquivo (artefatos versionados em disco)**. Esta é a fonte única da verdade técnica para o desenvolvimento orientado por IA e para os 4 integrantes.
+Este documento descreve a arquitetura completa do **SONAR** — um pipeline batch de PLN + Deep Learning, offline e reprodutível, com dashboard Streamlit. Diferente do template fullstack web padrão, **não há frontend/backend web, API REST, autenticação nem banco transacional**: o sistema é um monólito batch em Python cujo acoplamento entre fases se dá **exclusivamente por contratos de arquivo (artefatos versionados em disco)**. Esta é a fonte única da verdade técnica para o desenvolvimento orientado por IA e para os 4 integrantes.
 
 ### Nota de adequação do template
 
@@ -31,7 +31,7 @@ N/A — projeto greenfield Python, sem starter. Estrutura modular definida abaix
 
 ### Technical Summary
 
-O TrendRadar é um **monólito batch de processamento offline em Python**, organizado como um **pipeline linear de 5 estágios** (`coleta → pln → modelagem → temporal/score → dashboard`), onde cada estágio **lê e escreve artefatos versionados em disco** (Parquet/NPY/JSON), e um app **Streamlit read-only** consome apenas os artefatos pré-computados do estágio final. O acoplamento entre estágios é **só via contrato de arquivo** (não chamadas diretas) — o que permite os 4 integrantes desenvolverem fases em paralelo contra schemas fixos e torna o demo 100% reprodutível offline (NFR3). A computação pesada (embeddings, LSTM) roda em **GPU local via PyTorch**; o resto é CPU-bound com pandas. A "fonte da verdade" é o conjunto de artefatos em `dados/`.
+O SONAR é um **monólito batch de processamento offline em Python**, organizado como um **pipeline linear de 5 estágios** (`coleta → pln → modelagem → temporal/score → dashboard`), onde cada estágio **lê e escreve artefatos versionados em disco** (Parquet/NPY/JSON), e um app **Streamlit read-only** consome apenas os artefatos pré-computados do estágio final. O acoplamento entre estágios é **só via contrato de arquivo** (não chamadas diretas) — o que permite os 4 integrantes desenvolverem fases em paralelo contra schemas fixos e torna o demo 100% reprodutível offline (NFR3). A computação pesada (embeddings, LSTM) roda em **GPU local via PyTorch**; o resto é CPU-bound com pandas. A "fonte da verdade" é o conjunto de artefatos em `dados/`.
 
 ### Repository Structure
 
@@ -137,7 +137,7 @@ url = "https://download.pytorch.org/whl/cu124"
 priority = "explicit"
 
 [tool.poetry.scripts]
-trendradar = "run_all:main"
+sonar = "run_all:main"
 ```
 
 **Regras:** `priority = "explicit"` é obrigatório (senão o Poetry tenta resolver tudo no índice do PyTorch). Casar `cu124` com o driver da GPU (fallback `cu121`/`cu118`/`cpu`). CPU-only roda mais lento — mitigado pelo MiniLM.
@@ -299,7 +299,7 @@ Não há SGBD. O "schema" é o conjunto de artefatos Parquet/NPY/JSON descrito e
 ## Unified Project Structure
 
 ```plaintext
-trendradar/
+sonar/
 ├── config/
 │   └── config.yaml              # params: fontes, w, α, H, λ, n_min, k, modelo embedding
 ├── src/
@@ -336,7 +336,7 @@ trendradar/
 
 ```bash
 # Setup inicial (uma vez)
-git clone <repo> && cd trendradar
+git clone <repo> && cd sonar
 poetry install
 
 # Fases isoladas (trabalho paralelo dos 4)
@@ -346,7 +346,7 @@ poetry run python -m src.modelagem.run
 poetry run python -m src.scores.run
 
 # Pipeline completo + dashboard
-poetry run trendradar
+poetry run sonar
 poetry run streamlit run src/dashboard/app.py
 
 # Qualidade

@@ -1,4 +1,4 @@
-# Pesquisa de Viabilidade: Backfill Histórico de Notícias (TrendRadar)
+# Pesquisa de Viabilidade: Backfill Histórico de Notícias (SONAR)
 
 > **Autor:** @analyst (Atlas) | **Data:** 2026-06-08
 > **Objetivo:** resolver o Risco nº 1 do brief — RSS não tem profundidade histórica para a série temporal.

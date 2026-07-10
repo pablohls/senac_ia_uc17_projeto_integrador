@@ -1,4 +1,4 @@
-# TrendRadar — Mapeador de Tendências em Tecnologia: Product Requirements Document (PRD)
+# SONAR — Mapeador de Tendências em Tecnologia: Product Requirements Document (PRD)
 
 > **Autor:** @pm (Morgan) | **Modo:** YOLO | **Data:** 2026-06-08
 > **Entradas:** `docs/brief.md`, `docs/research/2026-06-08-backfill-historico/findings.md`, `docs/design/trend-score.md`
@@ -20,7 +20,7 @@
 
 ### Background Context
 
-Profissionais que dependem de antecipar tendências em tecnologia (analistas de inovação, criadores de conteúdo, PMs) hoje acompanham dezenas de portais manualmente e percebem movimentos tarde demais, sem medição objetiva de crescimento. O **TrendRadar** automatiza isso: descobre tópicos sozinho (sem taxonomia pré-definida), mede o crescimento de cada um ao longo do tempo e sinaliza os emergentes num dashboard.
+Profissionais que dependem de antecipar tendências em tecnologia (analistas de inovação, criadores de conteúdo, PMs) hoje acompanham dezenas de portais manualmente e percebem movimentos tarde demais, sem medição objetiva de crescimento. O **SONAR** automatiza isso: descobre tópicos sozinho (sem taxonomia pré-definida), mede o crescimento de cada um ao longo do tempo e sinaliza os emergentes num dashboard.
 
 A pesquisa de viabilidade confirmou que a fonte original (Twitter/X) é inviável em 2026 e que o **sitemap mensal datado dos portais** (Olhar Digital validado ao vivo: ~1.5–2k artigos/mês, granularidade diária) resolve o histórico temporal. O núcleo algorítmico foi definido como um **Trend Score de 2 camadas** (estatístico robusto + surpresa de previsão por LSTM). Este é um **Projeto Integrador acadêmico** (Curso de IA, 1200h), com restrições firmes: ~2 semanas até a banca, 4 integrantes e 1 GPU local — o que torna a priorização MUST > SHOULD > COULD e o plano B (Camada 1 estatística) decisões centrais, não detalhes.
 
@@ -120,7 +120,7 @@ MVP acadêmico; acessibilidade formal fora de escopo (mencionar como melhoria fu
 
 ### Branding
 
-Mínimo. Tema limpo do Streamlit; identidade visual simples "TrendRadar". Sem guia de marca obrigatório.
+Mínimo. Tema limpo do Streamlit; identidade visual simples "SONAR". Sem guia de marca obrigatório.
 
 ### Target Device and Platforms: Web Responsive
 
@@ -348,7 +348,7 @@ Como **avaliador (banca)**, quero **uma narrativa de caso real e a discussão é
 ## Next Steps
 
 ### UX Expert Prompt
-@ux-design-expert (Uma): com base neste PRD, projete o layout do dashboard Streamlit do TrendRadar — Painel Principal (Tópicos em Ascensão), Detalhe do Tópico, Grafo de co-ocorrência e Alertas. Foco em clareza informacional e leitura em < 1 min. Plataforma web/desktop, branding mínimo.
+@ux-design-expert (Uma): com base neste PRD, projete o layout do dashboard Streamlit do SONAR — Painel Principal (Tópicos em Ascensão), Detalhe do Tópico, Grafo de co-ocorrência e Alertas. Foco em clareza informacional e leitura em < 1 min. Plataforma web/desktop, branding mínimo.
 
 ### Architect Prompt
 @architect (Aria): com base neste PRD e em `docs/design/trend-score.md`, defina a arquitetura técnica do pipeline batch (coleta → PLN → modelagem → temporal → dashboard), registre o Trend Score de 2 camadas como ADR, especifique os artefatos intermediários (embeddings, tópicos, séries, scores) e o contrato entre fases. Respeite as restrições: monorepo, monólito batch, GPU local, 2 semanas, demo offline reprodutível.

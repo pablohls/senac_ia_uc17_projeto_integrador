@@ -1,4 +1,4 @@
-# Design Spec — Trend Score (TrendRadar)
+# Design Spec — Trend Score (SONAR)
 
 > **Origem:** sessão de brainstorming facilitada por @analyst (Atlas), 2026-06-08
 > **Objetivo da sessão:** definir uma fórmula concreta e defensável de "tendência emergente"

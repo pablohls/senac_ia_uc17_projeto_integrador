@@ -39,7 +39,7 @@ from pathlib import Path
 
 SITEMAP_INDEX = "https://olhardigital.com.br/sitemap.xml"
 FONTE = "olhardigital"
-USER_AGENT = "TrendRadar-PoC/0.1 (projeto integrador IA; coleta academica)"
+USER_AGENT = "SONAR-PoC/0.1 (projeto integrador IA; coleta academica)"
 SITEMAP_NS = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 
 # /2026/06/06/ciencia-e-espaco/titulo-do-artigo/
