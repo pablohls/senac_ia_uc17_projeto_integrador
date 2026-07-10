@@ -6,10 +6,14 @@ O **TrendRadar** é um pipeline de PLN + Deep Learning que monitora portais de t
 em português, agrupa automaticamente as notícias por assunto e identifica **quais tópicos
 estão ganhando tração** — sinalizando tendências emergentes antes que se tornem óbvias.
 
+> **Nota de marca:** na interface, o produto se apresenta como
+> **SONAR — Sistema de Observação de Narrativas e Assuntos Relevantes**.
+> O código, o pacote Python e este repositório mantêm o nome interno TrendRadar.
+
 ## Visão geral do pipeline
 
 ```
-Coleta (sitemap)  →  PLN (limpeza + embeddings)  →  Modelagem (BERTopic)  →  Trend Score  →  Dashboard
+Coleta (sitemap) → PLN (limpeza + embeddings) → Modelagem (BERTopic) → Trend Score → Dashboard + IA Generativa
 ```
 
 1. **Coleta** — notícias datadas via sitemap de portais (Olhar Digital, Canaltech).
@@ -18,7 +22,10 @@ Coleta (sitemap)  →  PLN (limpeza + embeddings)  →  Modelagem (BERTopic)  �
 4. **Trend Score** — 2 camadas:
    - **Camada 1 (estatística):** ranqueia os "Tópicos em Ascensão".
    - **Camada 2 (LSTM):** detecta surtos além do previsto (anomalia/sinal forte).
-5. **Dashboard** — Streamlit com tópicos em ascensão, grafo de co-ocorrência e alertas.
+5. **Dashboard** — Streamlit com tópicos em ascensão, pontes entre tópicos e alertas.
+6. **IA Generativa (Fase 5)** — LLM local via Ollama: **Analista IA** (briefings "por que
+   este tópico sobe", em lote) e **chat RAG** que responde perguntas sobre o corpus com
+   citação das fontes — e recusa honestamente o que o corpus não cobre.
 
 ## Documentação
 
@@ -34,28 +41,35 @@ Coleta (sitemap)  →  PLN (limpeza + embeddings)  →  Modelagem (BERTopic)  �
 ```
 config/          # config.yaml — parâmetros centrais (sem números mágicos no código)
 src/
-  common/        # utilidades compartilhadas (io, config)
+  common/        # utilidades compartilhadas (io, config, cliente LLM OpenAI-compatible)
   coleta/        # Fase 1: coleta via sitemap → corpus.parquet (contrato A1)
   pln/           # Fase 2: limpeza/normalização + embeddings
   modelagem/     # Fase 2: clustering de tópicos (BERTopic) + atribuição (contrato A3)
   scores/        # Fase 3: séries temporais + Trend Score (L1 estatística + L2 LSTM) + backtest
-  dashboard/     # Fase 4: app Streamlit (ranking, drill-down, grafo, alertas)
-dados/{raw,processed,topics,scores}/   # artefatos entre fases (contratos A1–A4)
+  dashboard/     # Fase 4: app Streamlit (ranking, drill-down, pontes entre tópicos, alertas)
+  insight/       # Fase 5: Analista IA — briefings "por que sobe" em lote (LLM local)
+  rag/           # Fase 5: RAG — retriever semântico + resposta com citação de fontes
+dados/{raw,processed,topics,scores,insight}/   # artefatos entre fases (contratos A1–A5)
 tests/  scripts/  docs/
 ```
 
 ## Como rodar (reprodução do demo)
 
 Pré-requisitos: **Python 3.12** e **Poetry**. Para a GPU, driver NVIDIA com suporte a
-CUDA 12.4 (o ambiente foi validado em NVIDIA T1000, driver 573.44). Sem GPU compatível,
-o pipeline roda em modo CPU — basta trocar `cu124` por `cpu` no `pyproject.toml`.
-Em Apple Silicon (M1/M2/M3), a aceleração MPS/Metal é detectada automaticamente.
+CUDA 12.4 (o pipeline offline foi validado em NVIDIA T1000, driver 573.44). Sem GPU
+compatível, o pipeline roda em modo CPU — basta trocar `cu124` por `cpu` no
+`pyproject.toml`. Em Apple Silicon (M1/M2/M3), a aceleração MPS/Metal é detectada
+automaticamente.
 
 ```bash
 poetry install                                  # 1. cria o ambiente isolado e instala tudo
 poetry run trendradar                           # 2. pipeline offline (PLN → tópicos → scores)
 poetry run streamlit run src/dashboard/app.py   # 3. abre o dashboard de tendências
 ```
+
+> Os artefatos de dados (corpus congelado, tópicos, scores, briefings e índice de
+> embeddings) são **versionados no repositório** — um clone limpo já abre o dashboard
+> (passo 3) sem precisar do passo 2. Rode o passo 2 para regenerar tudo do zero.
 
 > O comando 2 parte do **corpus congelado** (`dados/raw/corpus.parquet`). Para
 > atualizar a coleta: `poetry run trendradar --com-coleta` — o modo é **incremental**
@@ -66,9 +80,34 @@ poetry run streamlit run src/dashboard/app.py   # 3. abre o dashboard de tendên
 > Verificação rápida do ambiente: `poetry run pytest tests/smoke_test.py -s`
 > (confirma imports, detecção de GPU e leitura/escrita de Parquet).
 
+### Fase 5 — IA generativa (Analista IA + chat RAG)
+
+Os recursos de LLM (aba "🧠 Análise" e o chat RAG do dashboard) usam um modelo **local**
+servido pelo [Ollama](https://ollama.com). Sem ele, o dashboard continua funcionando —
+as seções de IA apenas exibem o fallback.
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh   # 1. instala o Ollama (Linux)
+ollama pull qwen2.5:14b                         # 2. baixa o modelo (ADR-002, ~9 GB)
+poetry run python -m src.insight.run            # 3. (opcional) regenera os briefings do Analista IA
+```
+
+- **Hardware:** o `qwen2.5:14b` (Q4) usa **~11 GB de VRAM** (validado em GPU de 16 GB).
+  Em GPUs menores o Ollama divide com a RAM (funciona, porém lento). Alternativa: aponte
+  para um endpoint remoto OpenAI-compatible.
+- **Configuração:** endpoint e modelo em `config/config.yaml → insight`
+  (`base_url: http://localhost:11434/v1`, `model: qwen2.5:14b`). Para endpoint remoto,
+  troque `base_url`/`model` e exporte a chave na env var `LLM_API_KEY` (com Ollama local
+  não é preciso chave).
+- Os briefings prontos (`dados/insight/briefings.parquet`) e o índice do RAG
+  (`dados/processed/embeddings_index.parquet`) já vêm versionados — o passo 3 só é
+  necessário após regenerar tópicos/scores.
+- A escolha do modelo foi validada por benchmark empírico A/B/C
+  ([`docs/research/2026-07-08-benchmark-llm-local/resultado-benchmark.md`](docs/research/2026-07-08-benchmark-llm-local/resultado-benchmark.md)).
+
 ## Stack
 
-Python 3.12 · Poetry · PyTorch (CUDA 12.4) · Sentence-Transformers · BERTopic · pandas/pyarrow · statsmodels · Streamlit · Plotly · NetworkX · pydantic
+Python 3.12 · Poetry · PyTorch (CUDA 12.4) · Sentence-Transformers · BERTopic · pandas/pyarrow · statsmodels · Streamlit · Plotly · NetworkX · pydantic · Ollama + SDK OpenAI (LLM local, endpoint OpenAI-compatible)
 
 ## Guia rápido de Git (para a equipe)
 
