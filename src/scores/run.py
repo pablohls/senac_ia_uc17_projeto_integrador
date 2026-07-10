@@ -25,8 +25,31 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
 DOC_TOPICS_PATH = "dados/topics/doc_topics.parquet"
+CORPUS_PATH = "dados/raw/corpus.parquet"
 SERIES_PATH = "dados/scores/series.parquet"
 SCORES_PATH = "dados/scores/scores.parquet"
+
+
+def _filtrar_fontes_temporais(doc_topics, fontes_confiaveis):
+    """Mantém na análise temporal só os docs de fontes com data confiável.
+
+    Fontes fora da lista (ex.: Canaltech, cuja data vem do <lastmod> do sitemap
+    e distorce as séries — DATA-001) seguem no corpus/tópicos/RAG, mas não contam
+    aqui. `fontes_confiaveis=None` desativa o filtro (usa todas as fontes).
+    """
+    if not fontes_confiaveis:
+        return doc_topics
+    corpus = ler_parquet(CORPUS_PATH)
+    fonte_por_doc = corpus.set_index("doc_id")["fonte"]
+    df = doc_topics.copy()
+    df["_fonte"] = df["doc_id"].map(fonte_por_doc)
+    antes = len(df)
+    df = df[df["_fonte"].isin(fontes_confiaveis)].drop(columns="_fonte")
+    logger.info(
+        "  Filtro temporal (DATA-001): %d de %d docs mantidos — fontes confiáveis=%s",
+        len(df), antes, fontes_confiaveis,
+    )
+    return df
 
 
 def main() -> None:
@@ -42,6 +65,10 @@ def main() -> None:
     logger.info("--- Story 3.1: Séries temporais por tópico ---")
     doc_topics = ler_parquet(DOC_TOPICS_PATH)
     logger.info("  doc_topics: %d linhas", len(doc_topics))
+
+    doc_topics = _filtrar_fontes_temporais(
+        doc_topics, config.analise_temporal.fontes_confiaveis
+    )
 
     series = montar_series(doc_topics)
     caminho_series = salvar_parquet(series, SERIES_PATH)
@@ -73,7 +100,10 @@ def main() -> None:
     atualizar_manifest(
         "scores",
         stage_version="3.1-3.3",
-        params={"trend_score": config.trend_score.model_dump()},
+        params={
+            "trend_score": config.trend_score.model_dump(),
+            "fontes_temporais": config.analise_temporal.fontes_confiaveis,
+        },
         extras={"n_alerts": len(alerts)},
     )
 

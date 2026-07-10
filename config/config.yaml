@@ -49,6 +49,24 @@ coleta:
     # Pausa entre requisições, em segundos (~1 req/s, NFR4).
     rate_limit_s: 1.0
 
+# Filtro de documentos excluídos da ANÁLISE (Fase 2+ — tópicos, scores, RAG).
+# As páginas /produto/ do Canaltech são catálogos de especificação (specs de
+# celular), não notícias: poluíam os tópicos com sopa de termos (gb, mp, marcas)
+# e boilerplate de navegação ("entrar"). Permanecem no corpus bruto (A1), mas
+# ficam de fora da modelagem. Vazio = nada excluído.
+corpus_analise:
+  excluir_url_contendo:
+    - /produto/
+
+# Análise temporal (Fase 3 — séries, Trend Score, alertas): fontes com data confiável.
+# O Canaltech deriva a data do <lastmod> do sitemap (não da publicação real),
+# concentrando ~54% dos artigos no dia da coleta e distorcendo séries/scores/alertas
+# (limitação DATA-001, gate 1.4). Ele PERMANECE no corpus (tópicos + chat RAG), mas
+# fica de fora da contagem temporal. Vazio/ausente = todas as fontes.
+analise_temporal:
+  fontes_confiaveis:
+    - olhar_digital
+
 # Modelo de embeddings semânticos (Sentence-Transformers, suporte a PT-BR).
 # Multilíngue para cobrir bem português; trocável sem mexer no código.
 embedding_model: sentence-transformers/paraphrase-multilingual-mpnet-base-v2

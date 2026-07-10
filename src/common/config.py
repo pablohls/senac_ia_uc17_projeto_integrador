@@ -47,6 +47,46 @@ class TrendScoreParams(BaseModel):
 
 
 # --------------------------------------------------------------------------
+# Fase 2 — Filtro de documentos excluídos da análise
+# --------------------------------------------------------------------------
+class CorpusAnaliseParams(BaseModel):
+    """Documentos excluídos da análise (PLN → tópicos → scores → RAG).
+
+    Páginas de catálogo/spec (ex.: `/produto/` do Canaltech) são templates de
+    especificação de aparelhos, não notícias: poluíam os tópicos com sopa de
+    termos (gb, mp, marcas) e boilerplate de navegação ("entrar"). Permanecem
+    no corpus bruto (A1), mas ficam fora da modelagem. Vazio = nada excluído.
+    """
+
+    excluir_url_contendo: list[str] = Field(
+        default_factory=list,
+        description="Exclui da análise os docs cuja URL contém qualquer destes "
+                    "trechos (ex.: /produto/ = catálogo de specs do Canaltech).",
+    )
+
+
+# --------------------------------------------------------------------------
+# Fase 3 — Filtro de fontes para a análise temporal
+# --------------------------------------------------------------------------
+class AnaliseTemporalParams(BaseModel):
+    """Fontes com data confiável para a análise temporal (séries, scores, alertas).
+
+    Nem toda fonte tem data de publicação confiável: o Canaltech deriva a data
+    do `<lastmod>` do sitemap (não da publicação real), o que concentra ~metade
+    dos artigos no dia da coleta e distorce séries/Trend Score/alertas
+    (limitação DATA-001). As fontes fora desta lista permanecem no corpus
+    (tópicos + chat RAG), mas ficam de fora da contagem temporal.
+    `None` = usar todas as fontes (comportamento retrocompatível).
+    """
+
+    fontes_confiaveis: list[str] | None = Field(
+        None,
+        description="Fontes com data confiável usadas na análise temporal; None = "
+                    "todas. Ex.: [olhar_digital] exclui o Canaltech (DATA-001).",
+    )
+
+
+# --------------------------------------------------------------------------
 # Fase 1 — Coleta (Stories 1.2, 1.3, 1.4)
 # --------------------------------------------------------------------------
 class SitemapParams(BaseModel):
@@ -183,6 +223,8 @@ class Config(BaseModel):
     fontes: list[str] = Field(..., min_length=1)
     embedding_model: str
     trend_score: TrendScoreParams = Field(default_factory=TrendScoreParams)
+    corpus_analise: CorpusAnaliseParams = Field(default_factory=CorpusAnaliseParams)
+    analise_temporal: AnaliseTemporalParams = Field(default_factory=AnaliseTemporalParams)
     coleta: ColetaParams
     limpeza: LimpezaParams = Field(default_factory=LimpezaParams)
     embedding: EmbeddingParams = Field(default_factory=EmbeddingParams)

@@ -12,6 +12,23 @@ from src.pln.embed import embed_corpus
 from src.modelagem.topics import modelar_topicos
 from src.modelagem.doc_topics import criar_doc_topics
 
+def _excluir_catalogo(df_raw):
+    """Remove da análise os docs cujas URLs são catálogo/spec (config-driven).
+
+    Ex.: `/produto/` do Canaltech — páginas de especificação de aparelhos, não
+    notícias. Ficam no corpus bruto (A1), mas fora da modelagem (tópicos/RAG).
+    Sem padrões configurados, devolve o corpus intacto.
+    """
+    padroes = config.corpus_analise.excluir_url_contendo
+    if not padroes or "url" not in df_raw.columns:
+        return df_raw
+    padrao = "|".join(p.replace(".", r"\.") for p in padroes)
+    catalogo = df_raw["url"].str.contains(padrao, case=False, na=False, regex=True)
+    if catalogo.any():
+        print(f"Excluídos da análise (catálogo {padroes}): {int(catalogo.sum())} docs")
+    return df_raw[~catalogo].copy()
+
+
 def executar_limpeza():
     print("\n" + "=" * 60)
     print("ETAPA 1: LIMPEZA DO CORPUS")
@@ -26,7 +43,9 @@ def executar_limpeza():
     
     df_raw = ler_parquet(caminho_entrada)
     print(f"Carregados {len(df_raw)} artigos")
-    
+
+    df_raw = _excluir_catalogo(df_raw)
+
     df_clean = aplicar_limpeza_corpus(df_raw)
     print(f"Mantidos {len(df_clean)} artigos")
     

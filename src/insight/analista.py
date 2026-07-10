@@ -19,6 +19,7 @@ ar e os demais tópicos recebem fallback direto (evita esperar N timeouts).
 from __future__ import annotations
 
 import logging
+import re
 
 import pandas as pd
 
@@ -30,6 +31,21 @@ logger = logging.getLogger(__name__)
 
 # Nº máximo de palavras do label (AC2) — contrato da story, não parâmetro tunável.
 MAX_PALAVRAS_LABEL = 8
+
+# Caracteres aceitos num label: latino (com acentos PT), dígitos e pontuação
+# comum. O LLM quantizado às vezes emite tokens de outro alfabeto (cirílico) ou
+# concatena palavras — nesses casos o label cai no fallback c-TF-IDF.
+_LABEL_LATINO = re.compile(r"^[\sA-Za-z0-9À-ÿ.,&/()\-'ªº°²³+:]*$")
+_MAX_TOKEN_LEN = 20  # palavra maior que isso = concatenação/lixo (ex.: "FonesBluetoothPromoção")
+
+
+def _label_suspeito(label: str) -> bool:
+    """True se o label do LLM parece corrompido (alfabeto estranho ou concatenado)."""
+    if not label.strip():
+        return True
+    if not _LABEL_LATINO.match(label):  # cirílico, emoji, etc.
+        return True
+    return any(len(w) > _MAX_TOKEN_LEN for w in label.split())
 
 
 def selecionar_topicos_ascensao(scores: pd.DataFrame, topic_info: pd.DataFrame) -> pd.DataFrame:
@@ -88,6 +104,10 @@ def gerar_briefing(label_ctfidf: str, contexto: str) -> tuple[str, str, bool]:
     if bruto is None:
         return label_ctfidf, "", False
     label = limpar_label(bruto)
+    if _label_suspeito(label):
+        logger.warning("Label do LLM suspeito (%r) — usando fallback c-TF-IDF %r",
+                       label, label_ctfidf)
+        label = label_ctfidf
 
     why = chat(
         montar_prompt_why(label, contexto),
