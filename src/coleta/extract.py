@@ -104,6 +104,25 @@ def montar_corpus(artigos: list[dict]) -> pd.DataFrame:
     return df
 
 
+def filtrar_urls_novas(urls_df: pd.DataFrame, corpus_atual: pd.DataFrame | None) -> pd.DataFrame:
+    """Filtra as URLs que ainda NÃO estão no corpus (modo incremental — Story 1.5).
+
+    Permite recoletas diárias baratas: só os artigos novos são baixados e o
+    corpus existente é preservado (agregação via :func:`mesclar_corpus`).
+
+    Args:
+        urls_df: URLs candidatas (schema da Story 1.2, com coluna ``url``).
+        corpus_atual: corpus A1 existente ou ``None``/vazio.
+
+    Returns:
+        Subconjunto de ``urls_df`` cujas ``url`` não existem no corpus.
+    """
+    if corpus_atual is None or corpus_atual.empty:
+        return urls_df
+    conhecidas = set(corpus_atual["url"])
+    return urls_df[~urls_df["url"].isin(conhecidas)].reset_index(drop=True)
+
+
 def mesclar_corpus(corpus_atual: pd.DataFrame | None, novos: pd.DataFrame) -> pd.DataFrame:
     """Mescla um novo lote (ex.: Canaltech) ao corpus A1, deduplicando por URL.
 
@@ -248,27 +267,58 @@ def _config_hash(config_path: str | Path = "config/config.yaml") -> str | None:
     return hashlib.sha1(p.read_bytes()).hexdigest()[:16]
 
 
-def main() -> None:
-    """Lê as URLs (1.2), extrai o texto e persiste o corpus A1 + manifesto."""
+def main(argv: list[str] | None = None) -> None:
+    """Lê as URLs (1.2), extrai o texto e persiste o corpus A1 + manifesto.
+
+    Modo INCREMENTAL por padrão (Story 1.5): se o corpus já existe, baixa
+    apenas as URLs novas e mescla (dedup por url) — recoletas diárias custam
+    minutos, não horas, e o corpus só cresce. Use ``--completo`` para
+    reconstruir tudo do zero.
+
+    Args:
+        argv: argumentos de CLI; ``None`` usa ``sys.argv`` (quem chama via
+            código — ex.: run_all — deve passar ``[]`` para não herdar os
+            argumentos do processo pai).
+    """
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Extração de texto → corpus A1 (Story 1.3/1.5)")
+    parser.add_argument(
+        "--completo", action="store_true",
+        help="Re-extrai TODAS as URLs, ignorando o corpus existente (reconstrução total).",
+    )
+    args = parser.parse_args(argv)
+
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     config = load_config()
     urls_df = ler_parquet(CAMINHO_URLS)
 
-    corpus = extrair_artigos(urls_df, config)
+    atual = None
+    if not args.completo and CAMINHO_CORPUS.exists():
+        atual = ler_parquet(CAMINHO_CORPUS)
+        novas = filtrar_urls_novas(urls_df, atual)
+        print(f"[i] Modo incremental: {len(novas)} URLs novas de {len(urls_df)} "
+              f"(corpus atual: {len(atual)} artigos). Use --completo p/ recoletar tudo.")
+        urls_df = novas
+
+    corpus_novos = extrair_artigos(urls_df, config)
+    corpus = mesclar_corpus(atual, corpus_novos)
     destino = salvar_parquet(corpus, CAMINHO_CORPUS)
 
     atualizar_manifest(
         "coleta",
         n_docs=len(corpus),
-        stage_version="1.3",
+        stage_version="1.5" if atual is not None else "1.3",
         params={
             "extract.rate_limit_s": config.coleta.extract.rate_limit_s,
             "extract.limite": config.coleta.extract.limite,
+            "extract.incremental": atual is not None,
         },
         extras={"config_hash": _config_hash()},
     )
 
-    print(f"[✓] Corpus A1 salvo em {destino} ({len(corpus)} artigos)")
+    print(f"[✓] Corpus A1 salvo em {destino} ({len(corpus)} artigos, "
+          f"{len(corpus_novos)} novos nesta execução)")
     if not corpus.empty:
         print(f"    Texto vazio: {int((corpus['texto'].str.len() == 0).sum())} (deve ser 0)")
         print(f"    URLs duplicadas: {int(corpus['url'].duplicated().sum())} (deve ser 0)")

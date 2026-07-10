@@ -1,0 +1,258 @@
+"""
+Grafo de co-ocorrência de termos (Story 4.2).
+
+Constrói um grafo NetworkX onde os nós são termos representativos (c-TF-IDF)
+e as arestas ligam termos que co-ocorrem no mesmo tópico. O peso da aresta é
+a soma, sobre os tópicos compartilhados, do menor ctfidf_weight do par —
+pares fortes em tópicos fortes ganham arestas mais grossas.
+
+Renderização: figura Plotly (scatter de nós + linhas), pronta para
+`st.plotly_chart`. O chamador controla o nº de nós exibidos (slider).
+"""
+
+from __future__ import annotations
+
+from itertools import combinations
+
+import networkx as nx
+import pandas as pd
+import plotly.graph_objects as go
+
+# Nº de termos por tópico considerados na co-ocorrência (topo do c-TF-IDF).
+TERMOS_POR_TOPICO = 8
+# Seed do layout spring (reprodutibilidade visual entre reloads).
+LAYOUT_SEED = 42
+
+
+def construir_grafo(topic_terms: pd.DataFrame, max_nos: int) -> nx.Graph:
+    """Monta o grafo de co-ocorrência a partir do topic_terms (contrato A3).
+
+    Args:
+        topic_terms: DataFrame {topic_id, term, ctfidf_weight, rank}.
+        max_nos: nº máximo de nós no grafo (termos mais fortes primeiro).
+
+    Returns:
+        Grafo com nós (atributo `weight` = força total do termo) e arestas
+        ponderadas; apenas o maior componente conectado até `max_nos` nós.
+    """
+    df = topic_terms[topic_terms["topic_id"] != -1].copy()
+    df = df[df["rank"] <= TERMOS_POR_TOPICO]
+
+    G = nx.Graph()
+    for _, grupo in df.groupby("topic_id"):
+        termos = grupo.sort_values("ctfidf_weight", ascending=False)
+        pares = list(combinations(termos.itertuples(index=False), 2))
+        for a, b in pares:
+            peso_par = min(a.ctfidf_weight, b.ctfidf_weight)
+            if G.has_edge(a.term, b.term):
+                G[a.term][b.term]["weight"] += peso_par
+            else:
+                G.add_edge(a.term, b.term, weight=peso_par)
+
+    # Força de cada nó = soma dos pesos das arestas (p/ dimensionar e filtrar)
+    # + tópico dominante (onde o termo tem maior c-TF-IDF) p/ colorir comunidades
+    dominante = df.loc[df.groupby("term")["ctfidf_weight"].idxmax()].set_index("term")["topic_id"]
+    for no in G.nodes():
+        G.nodes[no]["weight"] = sum(d["weight"] for _, _, d in G.edges(no, data=True))
+        G.nodes[no]["topic"] = int(dominante.get(no, -1))
+
+    # Mantém apenas os `max_nos` termos mais fortes (legibilidade — AC2)
+    if G.number_of_nodes() > max_nos:
+        mais_fortes = sorted(G.nodes(data=True), key=lambda x: -x[1]["weight"])[:max_nos]
+        G = G.subgraph([n for n, _ in mais_fortes]).copy()
+
+    return G
+
+
+# Nº padrão de pontes exibidas na tabela (top termos que conectam tópicos).
+TOP_PONTES = 5
+
+# Fallback mínimo de stopwords PT (artigos/preposições/conjunções mais comuns),
+# usado só quando o NLTK não está disponível — evita que "de/que/do…" dominem as
+# pontes sem introduzir dependência nova (NLTK já é dependência do projeto).
+_STOPWORDS_FALLBACK = {
+    "de", "do", "da", "dos", "das", "que", "em", "com", "para", "por",
+    "uma", "um", "os", "as", "no", "na", "nos", "nas", "ao", "aos",
+    "à", "às", "se", "é", "e", "ou", "the", "of", "and", "a", "o",
+}
+
+
+def _stopwords_pt() -> set[str]:
+    """Stopwords PT via NLTK (mesmo padrão de src/modelagem/topics.py); em caso
+    de indisponibilidade, degrada para um set mínimo hardcoded."""
+    try:
+        import nltk
+        from nltk.corpus import stopwords
+        nltk.download("stopwords", quiet=True)
+        return set(stopwords.words("portuguese")) | _STOPWORDS_FALLBACK
+    except Exception:
+        return set(_STOPWORDS_FALLBACK)
+
+
+def _eh_conteudo(termo: str, stops: set[str]) -> bool:
+    """True se o termo carrega conteúdo (não é stopword). Filtra apenas por
+    stopword — NÃO por tamanho, para preservar pontes curtas legítimas como
+    'ia', 'gb', '5g'. Cada palavra do n-grama é checada contra as stopwords."""
+    palavras = [p for p in termo.lower().split() if p]
+    if not palavras:
+        return False
+    # n-grama é stopword só se TODAS as suas palavras forem stopwords
+    return not all(p in stops for p in palavras)
+
+
+def extrair_pontes(
+    topic_terms: pd.DataFrame,
+    topic_info: pd.DataFrame | None = None,
+    top_n: int = TOP_PONTES,
+) -> pd.DataFrame:
+    """Extrai os termos-ponte: presentes nos termos representativos de ≥ 2 tópicos.
+
+    Uma "ponte" é um termo que aparece entre os termos representativos de mais de
+    um tópico — sinaliza uma pauta emergente na interseção de temas. Reusa a mesma
+    fonte de dados (`topic_terms`) e o mesmo grafo de `construir_grafo` (o `weight`
+    de cada nó = força total da co-ocorrência), sem reimplementar essa lógica.
+
+    Args:
+        topic_terms: DataFrame {topic_id, term, ctfidf_weight, rank} (contrato A3).
+        topic_info: DataFrame {topic_id, label, ...} para resolver os labels dos
+            tópicos conectados; se ausente, usa "Tópico {id}" como fallback.
+        top_n: nº máximo de pontes retornadas (ordenadas por nº de tópicos e força).
+
+    Returns:
+        DataFrame {termo, topicos, n_topicos, peso} com os top-`top_n` termos-ponte,
+        ordenado por (n_topicos, peso) desc. DataFrame vazio se não houver pontes.
+    """
+    colunas = ["termo", "topicos", "n_topicos", "peso"]
+
+    # Mesmo filtro de construir_grafo: descarta outliers e termos fora do top-N.
+    df = topic_terms[topic_terms["topic_id"] != -1].copy()
+    df = df[df["rank"] <= TERMOS_POR_TOPICO]
+    if df.empty:
+        return pd.DataFrame(columns=colunas)
+
+    # Multiplicidade de tópicos por termo (a partir da MESMA fonte de dados).
+    # Filtro de stopwords PT na CAMADA DE EXIBIÇÃO (Story 6.1 review fix): termos
+    # sem conteúdo ("de", "que", "do"…) dominariam as pontes e soterrariam as
+    # legítimas ("ia", "lua", "gb"), matando o valor interpretativo da tabela.
+    # Não altera o pipeline de PLN — apenas o que a tabela de pontes exibe.
+    stops = _stopwords_pt()
+    topicos_por_termo = df.groupby("term")["topic_id"].apply(lambda s: sorted(set(s)))
+    pontes = [
+        termo for termo, tids in topicos_por_termo.items()
+        if len(tids) >= 2 and _eh_conteudo(str(termo), stops)
+    ]
+    if not pontes:
+        return pd.DataFrame(columns=colunas)
+
+    # Reusa construir_grafo p/ obter o weight (força) de cada termo. max_nos alto o
+    # suficiente (nº de termos únicos) para NÃO cortar pontes fortes antes da contagem.
+    n_termos = df["term"].nunique()
+    grafo = construir_grafo(topic_terms, max_nos=n_termos)
+
+    labels = {}
+    if topic_info is not None and not topic_info.empty:
+        labels = topic_info.set_index("topic_id")["label"].to_dict()
+
+    linhas = []
+    for termo in pontes:
+        tids = topicos_por_termo[termo]
+        peso = float(grafo.nodes[termo]["weight"]) if termo in grafo.nodes else 0.0
+        linhas.append({
+            "termo": termo,
+            "topicos": ", ".join(str(labels.get(t, f"Tópico {t}")) for t in tids),
+            "n_topicos": len(tids),
+            "peso": peso,
+        })
+
+    resultado = pd.DataFrame(linhas, columns=colunas)
+    resultado = resultado.sort_values(
+        by=["n_topicos", "peso"], ascending=False
+    ).head(top_n).reset_index(drop=True)
+    return resultado
+
+
+# Fração das arestas mais fortes exibidas (as fracas viram poluição visual).
+FRACAO_ARESTAS = 0.5
+# Fração dos nós mais fortes que recebem rótulo fixo (o resto fica no hover).
+FRACAO_ROTULOS = 0.4
+# Paleta qualitativa para as comunidades (tópico dominante do termo).
+PALETA = [
+    "#0b7285", "#c05621", "#5f3dc4", "#2b8a3e", "#c2255c",
+    "#e67700", "#1864ab", "#087f5b", "#862e9c", "#a61e4d",
+]
+
+
+def figura_grafo(G: nx.Graph, titulo: str = "Co-ocorrência de termos") -> go.Figure:
+    """Converte o grafo NetworkX em figura Plotly legível.
+
+    Legibilidade (AC2 da Story 4.2): cor = comunidade (tópico dominante do
+    termo); rótulo fixo apenas nos termos mais fortes (demais no hover);
+    somente as arestas mais fortes são desenhadas; layout espalhado.
+    """
+    if G.number_of_nodes() == 0:
+        fig = go.Figure()
+        fig.update_layout(title=titulo, annotations=[dict(
+            text="Sem termos suficientes para montar o grafo",
+            showarrow=False, xref="paper", yref="paper", x=0.5, y=0.5,
+        )])
+        return fig
+
+    n = G.number_of_nodes()
+    # k maior espalha os nós; iterações extras estabilizam o layout
+    pos = nx.spring_layout(G, seed=LAYOUT_SEED, weight="weight",
+                           k=1.8 / max(n, 1) ** 0.5, iterations=100)
+
+    # Arestas: desenha só a fração mais forte (reduz o "novelo de lã")
+    arestas = sorted(G.edges(data=True), key=lambda e: -e[2]["weight"])
+    visiveis = arestas[:max(1, int(len(arestas) * FRACAO_ARESTAS))]
+    peso_max = visiveis[0][2]["weight"] if visiveis else 1.0
+    edge_traces = []
+    for u, v, d in visiveis:
+        x0, y0 = pos[u]
+        x1, y1 = pos[v]
+        edge_traces.append(go.Scatter(
+            x=[x0, x1], y=[y0, y1], mode="lines",
+            line=dict(width=0.6 + 2.4 * d["weight"] / peso_max, color="#B0BEC5"),
+            opacity=0.45, hoverinfo="none", showlegend=False,
+        ))
+
+    # Nós: tamanho ~ força; cor = comunidade; rótulo fixo só nos mais fortes
+    nos = list(G.nodes())
+    forcas = [G.nodes[n_]["weight"] for n_ in nos]
+    forca_max = max(forcas) if forcas else 1.0
+    corte_rotulo = sorted(forcas, reverse=True)[max(0, int(len(nos) * FRACAO_ROTULOS) - 1)]
+    topicos = sorted({G.nodes[n_]["topic"] for n_ in nos})
+    cor_do_topico = {t: PALETA[i % len(PALETA)] for i, t in enumerate(topicos)}
+
+    node_trace = go.Scatter(
+        x=[pos[n_][0] for n_ in nos],
+        y=[pos[n_][1] for n_ in nos],
+        mode="markers+text",
+        text=[n_ if G.nodes[n_]["weight"] >= corte_rotulo else "" for n_ in nos],
+        textposition="top center",
+        textfont=dict(size=11),
+        marker=dict(
+            size=[12 + 26 * f / forca_max for f in forcas],
+            color=[cor_do_topico[G.nodes[n_]["topic"]] for n_ in nos],
+            opacity=0.9,
+            line=dict(width=1, color="white"),
+        ),
+        hovertext=[
+            f"<b>{n_}</b><br>força: {G.nodes[n_]['weight']:.2f}<br>"
+            f"comunidade: tópico {G.nodes[n_]['topic']}"
+            for n_ in nos
+        ],
+        hoverinfo="text",
+        showlegend=False,
+    )
+
+    fig = go.Figure(data=edge_traces + [node_trace])
+    fig.update_layout(
+        title=titulo,
+        xaxis=dict(visible=False),
+        yaxis=dict(visible=False),
+        margin=dict(l=10, r=10, t=40, b=10),
+        height=620,
+        plot_bgcolor="rgba(0,0,0,0)",
+    )
+    return fig

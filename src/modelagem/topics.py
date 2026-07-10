@@ -11,50 +11,49 @@ from umap import UMAP
 from hdbscan import HDBSCAN
 from sklearn.feature_extraction.text import CountVectorizer
 import time
-import json
-from datetime import datetime, timedelta
 
-from src.common.io import ler_parquet, salvar_parquet
+from src.common.io import ler_parquet, salvar_parquet, atualizar_manifest
+from src.common.config import config
 
-def configurar_modelo(min_topic_size=2, n_neighbors=15, min_cluster_size=2):
+def configurar_modelo(params=None):
     """
-    Configura o BERTopic com parâmetros definidos.
-    
+    Configura o BERTopic com os parâmetros de `config.clustering` (Story 2.3).
+
     Argumentos:
-        min_topic_size: Tamanho mínimo para formar um tópico
-        n_neighbors: Vizinhos considerados no UMAP
-        min_cluster_size: Tamanho mínimo do cluster no HDBSCAN
-        
+        params: instância de ClusteringParams; se None, usa `config.clustering`
+
     Retorna:
         Modelo BERTopic configurado
     """
-    
+    if params is None:
+        params = config.clustering
+
     # UMAP reduz a dimensão dos embeddings
     umap_model = UMAP(
-        n_neighbors=n_neighbors,
-        n_components=5,
+        n_neighbors=params.n_neighbors,
+        n_components=params.n_components,
         min_dist=0.0,
         metric='cosine',
-        random_state=42
+        random_state=params.random_state
     )
-    
+
     # HDBSCAN encontra os grupos
     hdbscan_model = HDBSCAN(
-        min_cluster_size=min_cluster_size,
+        min_cluster_size=params.min_cluster_size,
         metric='euclidean',
-        cluster_selection_epsilon=0.1,
+        cluster_selection_epsilon=params.cluster_selection_epsilon,
         prediction_data=True
     )
-    
-    # CORREÇÃO: stopwords em português (F2)
+
+    # Stopwords em português (F2)
     try:
         import nltk
         from nltk.corpus import stopwords
         nltk.download('stopwords', quiet=True)
         stopwords_pt = stopwords.words('portuguese')
         print(f"   Stopwords PT carregadas: {len(stopwords_pt)} palavras")
-    except:
-        print("   Aviso: NLTK não disponível, usando stopwords padrão")
+    except Exception as e:
+        print(f"   Aviso: NLTK não disponível ({e}), usando stopwords padrão")
         stopwords_pt = []
     
     # CountVectorizer extrai palavras dos textos
@@ -63,33 +62,39 @@ def configurar_modelo(min_topic_size=2, n_neighbors=15, min_cluster_size=2):
         min_df=1,
         ngram_range=(1, 2)
     )
-    
+
     # BERTopic combina tudo
+    # language="multilingual" é OBRIGATÓRIO: o default ("english") faz o
+    # _preprocess_text interno remover caracteres não-ASCII — os acentos do
+    # PT-BR sumiam dos termos c-TF-IDF ("missão" virava "misso").
     model = BERTopic(
+        language="multilingual",
         embedding_model=None,  # Usamos embeddings prontos
         umap_model=umap_model,
         hdbscan_model=hdbscan_model,
         vectorizer_model=vectorizer_model,
-        min_topic_size=min_topic_size,
+        min_topic_size=params.min_topic_size,
         calculate_probabilities=True,
         verbose=True
     )
-    
+
     return model
 
-def modelar_topicos(caminho_embeddings=None, caminho_index=None, caminho_corpus=None, 
-                    caminho_saida=None, min_topic_size=2):
+def modelar_topicos(caminho_embeddings=None, caminho_index=None, caminho_corpus=None,
+                    caminho_saida=None, params=None):
     """
     Função principal que executa o clustering.
-    
+
     Argumentos:
         caminho_embeddings: Caminho do arquivo embeddings.npy
         caminho_index: Caminho do embeddings_index.parquet
         caminho_corpus: Caminho do corpus_clean.parquet
         caminho_saida: Pasta para salvar os resultados
-        min_topic_size: Tamanho mínimo do tópico
+        params: ClusteringParams; se None, usa `config.clustering`
     """
-    
+    if params is None:
+        params = config.clustering
+
     # Define caminhos padrão
     if caminho_embeddings is None:
         caminho_embeddings = Path("dados/processed/embeddings.npy")
@@ -125,7 +130,8 @@ def modelar_topicos(caminho_embeddings=None, caminho_index=None, caminho_corpus=
     
     # Passo 2: Configurar BERTopic
     print("\n2. Configurando BERTopic...")
-    model = configurar_modelo(min_topic_size=min_topic_size)
+    print(f"   Parâmetros (config.yaml): {params.model_dump()}")
+    model = configurar_modelo(params=params)
     
     # Passo 3: Executar clustering
     print("\n3. Executando clustering...")
@@ -184,11 +190,11 @@ def modelar_topicos(caminho_embeddings=None, caminho_index=None, caminho_corpus=
     # Calcular first_seen (min) e last_seen (max) por tópico
     datas_por_topico = df_com_datas.groupby('topic_id')['data'].agg(['min', 'max'])
     
-    # CORREÇÃO: label com top 3 termos (F11)
+    # Label com top-N termos (F11) — N vem da config
     def criar_label(topic_id, model):
         if topic_id == -1:
             return "Outliers"
-        termos = model.get_topic(topic_id)[:3]
+        termos = model.get_topic(topic_id)[:params.label_top_n]
         return " ".join([t[0] for t in termos])
     
     # CORREÇÃO: schema A3 (F4)
@@ -233,32 +239,27 @@ def modelar_topicos(caminho_embeddings=None, caminho_index=None, caminho_corpus=
     salvar_parquet(df_topic_terms, caminho_topic_terms)
     print(f"   Topic terms: {caminho_topic_terms}")
     
-    # Salvar doc_topics (tópico de cada documento)
+    # Salvar doc_topics no contrato A3: {doc_id, data, topic_id, probabilidade}
+    # (a coluna `data` vem do corpus — evita re-joins nos consumidores da Fase 3)
     df_doc_topics_final = pd.DataFrame({
         'doc_id': df_corpus['doc_id'].values,
+        'data': df_corpus['data'].values,
         'topic_id': topicos,
         'probabilidade': probabilities.max(axis=1) if probabilities is not None else 0
     })
     caminho_doc_topics = caminho_saida / "doc_topics.parquet"
     salvar_parquet(df_doc_topics_final, caminho_doc_topics)
     print(f"   Doc topics: {caminho_doc_topics}")
-    
-    # Salvar manifesto
-    manifest = {
-        "data": datetime.now().isoformat(),
-        "min_topic_size": min_topic_size,
-        "n_neighbors": 15,
-        "min_cluster_size": 2,
-        "total_artigos": len(df_corpus),
-        "n_topicos": n_topicos,
-        "n_outliers": n_outliers,
-        "tempo_segundos": tempo_total
-    }
-    
-    caminho_manifest = caminho_saida / "topic_manifest.json"
-    with open(caminho_manifest, 'w') as f:
-        json.dump(manifest, f, indent=2)
-    print(f"   Manifesto: {caminho_manifest}")
+
+    # Manifesto transversal de reprodutibilidade (F9 — contrato A1)
+    atualizar_manifest(
+        "clustering",
+        n_docs=len(df_corpus),
+        stage_version="2.3",
+        params={"clustering": params.model_dump()},
+        extras={"n_topics": n_topicos},
+    )
+    print(f"   Manifesto transversal atualizado (estágio: clustering)")
     
     print("\n" + "=" * 60)
     print("MODELAGEM DE TÓPICOS CONCLUÍDA!")

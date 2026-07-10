@@ -11,7 +11,13 @@ from datetime import date
 
 import pandas as pd
 
-from src.coleta.extract import COLUNAS_A1, gerar_doc_id, mesclar_corpus, montar_corpus
+from src.coleta.extract import (
+    COLUNAS_A1,
+    filtrar_urls_novas,
+    gerar_doc_id,
+    mesclar_corpus,
+    montar_corpus,
+)
 
 URL_A = "https://olhardigital.com.br/2026/06/06/ia/artigo-a/"
 URL_B = "https://olhardigital.com.br/2026/06/07/games/artigo-b/"
@@ -127,3 +133,40 @@ def test_mesclar_corpus_base_vazia() -> None:
     out = mesclar_corpus(None, novos)
     assert len(out) == 1
     assert list(out.columns) == COLUNAS_A1
+
+
+# ---------------------------------------------------------------------------
+# Modo incremental (Story 1.5)
+# ---------------------------------------------------------------------------
+def test_filtrar_urls_novas_remove_conhecidas():
+    """URLs já presentes no corpus não são re-baixadas."""
+    urls = pd.DataFrame({
+        "url": ["https://a.com/1", "https://a.com/2", "https://a.com/3"],
+        "data": ["2026-07-07"] * 3,
+    })
+    corpus = pd.DataFrame({"doc_id": ["x1"], "url": ["https://a.com/1"], "texto": ["antigo"]})
+    novas = filtrar_urls_novas(urls, corpus)
+    assert list(novas["url"]) == ["https://a.com/2", "https://a.com/3"]
+
+
+def test_filtrar_urls_novas_corpus_vazio_ou_ausente():
+    """Sem corpus (primeira coleta), todas as URLs são novas."""
+    urls = pd.DataFrame({"url": ["https://a.com/1"], "data": ["2026-07-07"]})
+    assert len(filtrar_urls_novas(urls, None)) == 1
+    assert len(filtrar_urls_novas(urls, pd.DataFrame(columns=["url"]))) == 1
+
+
+def test_filtrar_urls_novas_tudo_conhecido():
+    """Recoleta sem novidade → zero URLs a baixar (execução barata)."""
+    urls = pd.DataFrame({"url": ["https://a.com/1"], "data": ["2026-07-07"]})
+    corpus = pd.DataFrame({"url": ["https://a.com/1"], "doc_id": ["x1"]})
+    assert len(filtrar_urls_novas(urls, corpus)) == 0
+
+
+def test_incremental_agrega_sem_perder_dados():
+    """Fluxo completo: filtrar novas + mesclar preserva o corpus antigo."""
+    atual = montar_corpus([_artigo(URL_A)])
+    novos = montar_corpus([_artigo(URL_B, data=date(2026, 7, 7))])
+    combinado = mesclar_corpus(atual, novos)
+    assert len(combinado) == 2
+    assert set(combinado["url"]) == {URL_A, URL_B}
