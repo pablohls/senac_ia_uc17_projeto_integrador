@@ -1,5 +1,6 @@
 """
-Dashboard TrendRadar (Fase 4 — Stories 4.1, 4.2, 4.3; Fase 5 — Story 5.3).
+Dashboard SONAR — Sistema de Observação de Narrativas e Assuntos Relevantes
+(Fase 4 — Stories 4.1, 4.2, 4.3; Fase 5 — Story 5.3; rebrand/tema/série — Story 6.2).
 
 Precompute-then-serve: lê somente artefatos gerados offline pelas Fases 2-3/5
 (contratos A3/A4/A5) — nenhum cálculo pesado acontece aqui (NFR8, carga < 5s).
@@ -17,12 +18,13 @@ import streamlit as st
 from src.common.llm import llm_disponivel
 from src.dashboard.graph import PALETA, construir_grafo, extrair_pontes, figura_grafo
 from src.dashboard.insight import aplicar_insight, carregar_briefings
+from src.dashboard.timeseries import preparar_serie
 from src.rag.responder import MSG_INDISPONIVEL, responder_stream
 
 # Configuração da página para otimizar o layout
 st.set_page_config(
-    page_title="TrendRadar - Dashboard",
-    page_icon="📈",
+    page_title="SONAR - Dashboard",
+    page_icon="📡",
     layout="wide"
 )
 
@@ -104,7 +106,7 @@ def load_artifacts():
 # -----------------------------------------------------------------------------
 # Inicialização e Tratamento de Erros
 # -----------------------------------------------------------------------------
-st.title("📈 TrendRadar: Tópicos em Ascensão")
+st.title("📡 SONAR: Sistema de Observação de Narrativas e Assuntos Relevantes")
 st.markdown("Acompanhe as tendências do setor identificadas pelo nosso pipeline.")
 
 artifacts = load_artifacts()
@@ -273,16 +275,19 @@ if topico_selecionado_id is not None:
             else:
                 st.info("Sem análise do Analista IA para este tópico (fallback c-TF-IDF).")
 
-    # Aba 1: Gráfico Temporal — schema real: {topic_id, data, count}
+    # Aba 1: Gráfico Temporal — schema real: {topic_id, data, count, count_weekly}
+    # Story 6.2: converte `data` p/ datetime, plota `count_weekly` (o sinal real
+    # está na contagem semanal) e recorta o período morto inicial (função pura).
     with tab1:
-        if not topic_serie.empty:
+        serie_plot = preparar_serie(topic_serie)
+        if not serie_plot.empty:
             fig = px.line(
-                topic_serie,
+                serie_plot,
                 x="data",
-                y="count",
+                y="count_weekly",
                 title=f"Evolução no Tempo: {opcoes_topicos[topico_selecionado_id]}",
                 markers=True,
-                labels={"data": "Data", "count": "Artigos por dia"},
+                labels={"data": "Data", "count_weekly": "Artigos por semana"},
                 color_discrete_sequence=PALETA,
             )
             st.plotly_chart(fig, width='stretch')
