@@ -1,9 +1,11 @@
-# Tema do TrendRadar (Story 6.1) — identidade visual consistente com a paleta
-# do grafo de co-ocorrência (PALETA em src/dashboard/graph.py). Recurso NATIVO
-# do Streamlit: nenhuma dependência nova é necessária para o tema.
+# Tema do SONAR (Story 6.1; tema dark na Story 6.2) — identidade visual
+# consistente com a paleta do grafo de co-ocorrência (PALETA em
+# src/dashboard/graph.py). Recurso NATIVO do Streamlit: nenhuma dependência
+# nova é necessária para o tema.
 [theme]
-primaryColor = "#0b7285"           # PALETA[0] — teal do grafo (Story 4.2)
-backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#eef4f6"  # teal bem claro, deriva do primaryColor
-textColor = "#1a2b32"
+base = "dark"
+primaryColor = "#15aabf"              # família do teal (PALETA[0] #0b7285), clareado p/ contraste no dark
+backgroundColor = "#0e1a1f"           # fundo escuro derivado do teal
+secondaryBackgroundColor = "#16262c"  # cartões/tabelas — teal escuro um tom acima do fundo
+textColor = "#e8f1f2"                 # texto claro, legível sobre o fundo escuro
 font = "sans serif"
