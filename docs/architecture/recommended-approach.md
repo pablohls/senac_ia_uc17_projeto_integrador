@@ -73,7 +73,7 @@ dados/insight/
 `src/common/llm.py` expõe **uma** interface, agnóstica ao provedor:
 
 ```python
-# Config-driven: base_url decide Claude API vs Ollama local (troca de 1 linha no YAML).
+# Config-driven: base_url decide API na nuvem vs Ollama local (troca de 1 linha no YAML).
 def chat(messages: list[dict], *, temperature: float, max_tokens: int) -> str | None:
     """Chamada OpenAI-compatible. Retorna None em falha (degradação graciosa — C2)."""
 ```
@@ -85,7 +85,7 @@ def chat(messages: list[dict], *, temperature: float, max_tokens: int) -> str | 
 **Seção `insight:` no config.yaml (esboço):**
 ```yaml
 insight:
-  base_url: "http://localhost:11434/v1"   # Ollama local (demo) | trocar p/ Claude no dev
+  base_url: "http://localhost:11434/v1"   # Ollama local (demo) | trocar p/ API na nuvem no dev
   model: "qwen2.5:14b"                      # a confirmar por benchmark (@analyst)
   temperature_batch: 0.0                    # determinismo no Analista IA (C4)
   temperature_chat: 0.3                     # RAG um pouco mais fluido
@@ -119,7 +119,7 @@ Encaixe: novo painel `st.chat_input` no `app.py`, guardado por `tem_rag` (se end
 
 ## 6. Passos de implementação
 
-1. **Cliente LLM** (`src/common/llm.py`) + `InsightParams` + seção `insight:` — a fundação agnóstica. Testar contra Ollama local **e** contra Claude (prova o C1).
+1. **Cliente LLM** (`src/common/llm.py`) + `InsightParams` + seção `insight:` — a fundação agnóstica. Testar contra Ollama local **e** contra uma API na nuvem (prova o C1).
 2. **Benchmark de modelo** (@analyst) — Qwen2.5-14B × Gemma-2-9B em PT-BR sobre amostra de tópicos; fixa `insight.model`.
 3. **Analista IA** (`src/insight/`) — batch + artefato A5 + registro no manifesto. Menor caminho até algo visível.
 4. **Painel Analista IA** no dashboard — lê A5, degradação graciosa (`tem_insight`).
@@ -144,7 +144,7 @@ Encaixe: novo painel `st.chat_input` no `app.py`, guardado por `tem_rag` (se end
 
 ## 8. Dependências
 
-- **Nova lib:** `openai` (cliente OpenAI-compatible — fala com Ollama e Claude). Leve, sem CUDA.
+- **Nova lib:** `openai` (cliente OpenAI-compatible — fala com Ollama e APIs na nuvem). Leve, sem CUDA.
 - **Infra:** Ollama instalado na VM (GPU 16GB) + `ollama pull qwen2.5:14b` (ou o vencedor do benchmark).
 - **Reúso (sem nova dep):** `numpy`/`pandas` (cosseno do RAG), `sentence-transformers` (já presente, para embeddar a pergunta), `embeddings.npy` (já gerado).
 

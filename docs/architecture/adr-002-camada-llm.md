@@ -46,7 +46,7 @@ def chat(messages, *, temperature, max_tokens) -> str | None:
     """Retorna None em falha → degradação graciosa (o dashboard segue com c-TF-IDF)."""
 ```
 
-- **Dev / iteração de prompt:** `base_url` → Claude API (rápido).
+- **Dev / iteração de prompt:** `base_url` → API de LLM na nuvem (rápido).
 - **Demo / banca:** `base_url` → **Ollama** local (`http://localhost:11434/v1`), 100% offline.
 - Trocar um pelo outro é **uma linha no `config.yaml`** — nenhuma reescrita.
 
@@ -81,7 +81,7 @@ Validação empírica no corpus real (A/B/C) fica como **opcional, não-bloquean
 
 | Alternativa | Por que rejeitada |
 |---|---|
-| **Só Claude API (sem LLM local)** | Perde a soberania de dados/LGPD e desperdiça a GPU disponível; cria dependência externa e custo por chamada no demo. Mantida apenas como caminho de *dev* via o mesmo cliente. |
+| **Só API na nuvem (sem LLM local)** | Perde a soberania de dados/LGPD e desperdiça a GPU disponível; cria dependência externa e custo por chamada no demo. Mantida apenas como caminho de *dev* via o mesmo cliente. |
 | **Modelo local 27-32B** | Não cabe confortável em 16GB VRAM (~18-20GB em 4-bit); forçar Q3 degrada qualidade e contexto. Desnecessário para tarefas grounded. |
 | **vLLM em vez de Ollama** | Melhor throughput, mas setup mais trabalhoso (quantização manual) sem ganho relevante para 1 usuário na banca. Reconsiderável se surgir necessidade de escala. |
 | **Rotular tópicos com regras/heurística (sem LLM)** | Não entrega narrativa nem "por que sobe"; é o que já existe (c-TF-IDF). |
@@ -92,7 +92,7 @@ Validação empírica no corpus real (A/B/C) fica como **opcional, não-bloquean
 
 | Parâmetro | Default | Papel |
 |---|---|---|
-| `base_url` | `http://localhost:11434/v1` | endpoint OpenAI-compatible (Ollama local / Claude no dev) |
+| `base_url` | `http://localhost:11434/v1` | endpoint OpenAI-compatible (Ollama local / API na nuvem no dev) |
 | `model` | `qwen2.5:14b` | modelo servido; firmado por pesquisa @analyst (líder PT-BR); shortlist alternativa: `qwen3.5:9b`, `gemma3:12b` |
 | `temperature_batch` | 0.0 | determinismo do Analista IA (reprodutibilidade) |
 | `temperature_chat` | 0.3 | fluidez do RAG |
@@ -109,7 +109,7 @@ Validação empírica no corpus real (A/B/C) fica como **opcional, não-bloquean
 - **RAG** em `src/rag/` (`retriever.py` = cosseno sobre `embeddings.npy`; `responder.py` = prompt + citação).
 - **Dashboard**: extensão pequena e opcional em `src/dashboard/app.py` (painel Analista IA + `st.chat_input`), guardada por flags de disponibilidade.
 - **Config**: seção `insight:` + classe `InsightParams` (pydantic), padrão idêntico ao `TrendScoreParams`.
-- **Dependência nova:** `openai` (cliente OpenAI-compatible; fala com Ollama e Claude). Sem CUDA, leve.
+- **Dependência nova:** `openai` (cliente OpenAI-compatible; fala com Ollama e APIs na nuvem). Sem CUDA, leve.
 - **Validação:** manter a suíte pytest verde (89+); testar explicitamente o caminho de degradação graciosa (endpoint off).
 
 > **Pendências antes de `Aceito`:** ~~(1) benchmark de modelo (@analyst) fixando `insight.model`~~ ✅ `qwen2.5:14b` firmado (`findings.md`); ~~(2) quebra em stories da Fase 5 (@sm)~~ ✅ 6 stories (5.1–5.6) criadas e **validadas GO** pelo @po (todas em `Ready`). **Ambas concluídas → ADR ACEITO em 2026-07-08.** Validação empírica A/B/C permanece opcional/não-bloqueante (Story 5.6, COULD).

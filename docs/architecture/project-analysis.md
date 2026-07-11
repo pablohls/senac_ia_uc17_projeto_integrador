@@ -51,7 +51,7 @@ Toda troca entre fases é um Parquet nomeado, escrito/lido **exclusivamente** po
 
 ### 3.4 Config-driven (pydantic, zero número mágico)
 Todo parâmetro ajustável vive no `config.yaml` e é validado por um modelo pydantic.
-→ **Implicação:** endpoint do LLM, nome do modelo, temperatura, `max_tokens`, top-k do RAG etc. entram numa nova seção `insight:` + modelo `InsightParams`. Trocar Claude API ↔ LLM local vira **troca de uma linha na config**.
+→ **Implicação:** endpoint do LLM, nome do modelo, temperatura, `max_tokens`, top-k do RAG etc. entram numa nova seção `insight:` + modelo `InsightParams`. Trocar API na nuvem ↔ LLM local vira **troca de uma linha na config**.
 
 ---
 
@@ -93,7 +93,7 @@ streamlit app.py (online)
 
 | # | Restrição | Origem |
 |---|---|---|
-| C1 | Provider-agnostic obrigatório (endpoint OpenAI-compatible) — dev contra Claude API, demo contra LLM local por troca de config | Conversa de arquitetura + padrão config-driven |
+| C1 | Provider-agnostic obrigatório (endpoint OpenAI-compatible) — dev contra API na nuvem, demo contra LLM local por troca de config | Conversa de arquitetura + padrão config-driven |
 | C2 | Degradação graciosa: LLM off ⇒ dashboard funciona com labels c-TF-IDF | Padrão §3.2 |
 | C3 | LLM local cabe em 16GB VRAM: teto ~14B em 4-bit; tarefas são *grounded* (RAG), o que reduz a exigência do modelo | Hardware da VM |
 | C4 | Reprodutibilidade: seed + carimbo no `run_manifest.json` (mas geração de LLM é não-determinística — registrar modelo + temperatura, e considerar `temperature=0` no batch) | Padrão §3.3 |
