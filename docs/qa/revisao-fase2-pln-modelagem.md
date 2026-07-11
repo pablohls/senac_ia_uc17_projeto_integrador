@@ -8,7 +8,7 @@ Review — Findings (não aplicado nenhum código)
 
 ```
 escopo: "Stories 2.1, 2.2, 2.3, 2.4 (PLN + Modelagem)"
-revisor: "@dev (Dex)"
+revisor: "@dev"
 data: 2026-06-17
 modo: "auditoria de conformidade (read-only, sem alterações)"
 fontes_de_verdade:
@@ -36,7 +36,7 @@ O pipeline da Fase 2 **roda e produz artefatos alinhados** (50 documentos de pon
 1. Foi validado sobre uma **amostra reduzida de 50 notícias** — decisão **intencional da equipe** para agilizar os testes da Fase 2 (não é um problema). O ponto em aberto é que o **gate de coerência SM2 sobre o corpus completo** ainda precisa ser executado antes do fechamento.
 2. **Diverge dos Contratos de Artefatos** (A2/A3) que a arquitetura declara como "lei".
 3. **O código commitado não reproduz os artefatos em disco** — há descasamento entre `clean.py` e o `corpus_clean.parquet` real, e **não existe o runner `src/pln/run.py`** previsto na arquitetura.
-4. **Processo de story não seguido:** as 4 stories continuam em `Ready`, checkboxes de tasks desmarcados, `File List` / `Dev Agent Record` / `Change Log` "(a preencher)".
+4. **Processo de story não seguido:** as 4 stories continuam em `Ready`, checkboxes de tasks desmarcados, `File List` / `Registro de Implementação` / `Change Log` "(a preencher)".
 
 **Conformidade por story:**
 
@@ -216,7 +216,7 @@ Severidade: 🔴 Crítico/Alto · 🟡 Médio · 🟢 Baixo
 ### 🟡 F14 — Processo de story não seguido
 
 - **Viola:** `story-lifecycle.md` (transições de status, File List, checkboxes).
-- **Evidência:** as 4 stories continuam em `Ready`; tasks/subtasks todas `[ ]`; `Dev Agent Record`, `File List` e `Change Log` "(a preencher)".
+- **Evidência:** as 4 stories continuam em `Ready`; tasks/subtasks todas `[ ]`; `Registro de Implementação`, `File List` e `Change Log` "(a preencher)".
 - **Como resolver:** ao implementar/corrigir, marcar checkboxes concluídos, preencher `File List` (arquivos criados/modificados), registrar no `Change Log` as transições `Ready → InProgress → InReview` e atualizar `Status`.
 
 ---
@@ -250,4 +250,4 @@ Severidade: 🔴 Crítico/Alto · 🟡 Médio · 🟢 Baixo
 
 | Date | Version | Description | Author |
 |------|---------|-------------|--------|
-| 2026-06-17 | 1.0 | Laudo de revisão da Fase 2 (14 achados, read-only) | Dex (@dev) |
+| 2026-06-17 | 1.0 | Laudo de revisão da Fase 2 (14 achados, read-only) | @dev |

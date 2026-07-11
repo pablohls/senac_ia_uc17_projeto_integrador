@@ -3,7 +3,7 @@ story: "1.3"
 story_title: "Extração de texto e dataset congelado (A1)"
 gate: CONCERNS
 status_reason: "AC1-AC3 atendidos e verificados (11/11 testes, ruff verde, amostra real de 30 artigos íntegra). AC4 com mecanismo + exceção LFS prontos, mas o corpus A1 completo (7.064) ainda não foi congelado/commitado — passo manual aprovado pelo owner, porém pré-requisito da Story 2.1."
-reviewer: "Quinn (Test Architect)"
+reviewer: "@qa"
 updated: "2026-06-11T00:00:00Z"
 
 top_issues:

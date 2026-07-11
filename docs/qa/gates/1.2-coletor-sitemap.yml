@@ -3,7 +3,7 @@ story: "1.2"
 story_title: "Coletor de sitemap (URLs datadas)"
 gate: PASS
 status_reason: "Todos os 4 AC atendidos e verificados de forma independente (13/13 testes determinísticos, ruff verde, run real 7.064 URLs > 4.000). Notas são recomendações futuras não-bloqueantes."
-reviewer: "Quinn (Test Architect)"
+reviewer: "@qa"
 updated: "2026-06-11T00:00:00Z"
 
 top_issues: []

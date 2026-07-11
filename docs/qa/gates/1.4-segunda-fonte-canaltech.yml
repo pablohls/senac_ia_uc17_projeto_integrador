@@ -3,7 +3,7 @@ story: "1.4"
 story_title: "Segunda fonte (Canaltech) — corpus multi-fonte"
 gate: CONCERNS
 status_reason: "AC1-AC3 atendidos e verificados (39 testes, ruff verde, 9.674 URLs Canaltech listadas, amostra multi-fonte íntegra). CONCERNS por qualidade de dados da fonte (data via lastmod + categorias produto/video) e pelo merge completo deferido ao freeze manual — ambos a avaliar antes do Epic 3."
-reviewer: "Quinn (Test Architect)"
+reviewer: "@qa"
 updated: "2026-06-11T00:00:00Z"
 
 top_issues:

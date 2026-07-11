@@ -1,6 +1,6 @@
 # Gate de Coerência SM2 — Clustering de Tópicos (Story 2.3 / AC3)
 
-**Data:** 2026-07-06 · **Executor:** Dex (@dev) · **Veredito: ✅ PASS (93% ≥ 70%)**
+**Data:** 2026-07-06 · **Executor:** @dev · **Veredito: ✅ PASS (93% ≥ 70%)**
 
 ## Corpus e parâmetros
 
