@@ -41,6 +41,11 @@ Thumbs.db
 .kimi/
 .github/
 
+# Documentos internos de processo/sessão (não fazem parte do entregável;
+# mantidos localmente e distribuídos à parte entre os desenvolvedores)
+docs/handoff-*.md
+docs/runlogs/
+
 
 
 # Python
