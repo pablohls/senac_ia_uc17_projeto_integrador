@@ -196,6 +196,52 @@ git branch                      # lista seus branches (o atual tem um *)
 git merge minha-feature         # (estando na main) traz o trabalho do branch para a main
 ```
 
+### 4. Socorro: `git pull` deu "diverged" ou conflito estranho
+
+Se o `pull` reclamar que os históricos **divergiram** sem você ter feito nada de errado,
+provavelmente alguém **reescreveu o histórico** da `main` (mudar mensagens de commit, limpar
+metadados). Isso troca o identificador (*hash*) de todos os commits: o conteúdo é o mesmo,
+mas o Git passa a ver as duas versões como histórias diferentes.
+
+**Antes de qualquer coisa, descubra se você tem trabalho que só existe na sua máquina.**
+Este comando compara pelo *conteúdo* das mudanças, então funciona mesmo com os hashes
+trocados:
+
+```bash
+git fetch origin
+git cherry -v origin/main main    # lista o que existe só aqui; nada listado = nada exclusivo
+```
+
+- **Nada foi listado** → você não tem trabalho exclusivo. Pode re-sincronizar:
+
+  ```bash
+  git checkout main
+  git reset --hard origin/main    # descarta a versão local e adota a do GitHub
+  git fetch --prune               # remove referências a branches que já não existem
+  ```
+
+- **Apareceu alguma linha** → **não rode o `reset --hard` ainda.** Salve seu trabalho num
+  branch antes, senão ele é perdido:
+
+  ```bash
+  git branch meu-backup           # guarda seus commits
+  git reset --hard origin/main    # agora sim, com o backup feito
+  ```
+
+  Depois, traga só o seu trabalho de volta por cima da versão nova:
+
+  ```bash
+  git rebase --onto origin/main meu-backup~1 meu-backup
+  ```
+
+  Na dúvida sobre o `rebase`, pare e chame alguém — o `meu-backup` mantém tudo salvo.
+
+> ⚠️ Reescrever histórico da `main` obriga **toda a equipe** a fazer isso. Evite; se for
+> realmente necessário, avise antes e confirme que ninguém tem trabalho pendente.
+> Atenção: se a `main` remota também **avançou** depois da reescrita, o `reset --hard`
+> não devolve só os hashes — ele traz conteúdo novo e descarta o seu. Por isso o
+> `git cherry` vem primeiro, sempre.
+
 ### Referência rápida
 
 | Comando | O que faz |
