@@ -57,18 +57,43 @@ tests/  scripts/  docs/
 ## Como rodar (reprodução do demo)
 
 Pré-requisitos: **Python 3.12** e **Poetry**. Nada além de `poetry install` é necessário
-em nenhuma plataforma: as wheels oficiais do PyTorch já são específicas por sistema.
+em nenhuma plataforma — as wheels oficiais do PyTorch já são específicas por sistema, e
+**ninguém precisa editar o `pyproject.toml`**.
 
-- **Linux + NVIDIA:** vem a build CUDA 12.4 automaticamente (validado em NVIDIA T1000,
-  driver 573.44). Só é preciso o driver com suporte a CUDA 12.4.
-- **Apple Silicon (M1/M2/M3):** vem a build com MPS/Metal, detectada automaticamente.
-- **Sem GPU compatível:** o pipeline cai para CPU sozinho, sem editar nada.
+| Sua máquina | O que você ganha | Precisa fazer algo? |
+|---|---|---|
+| **Linux + NVIDIA** | GPU via CUDA 12.4 (validado em T1000, driver 573.44) | Só ter o driver com suporte a CUDA 12.4 |
+| **macOS Apple Silicon** (M1/M2/M3) | GPU via MPS/Metal, detectada sozinha | Não |
+| **Windows** | CPU (as wheels do PyPI p/ Windows são CPU-only) | Só se quiser GPU — ver abaixo |
+| **Qualquer uma sem GPU** | CPU, com fallback automático | Não |
+
+<details>
+<summary><b>Windows + placa NVIDIA:</b> como habilitar a GPU (opcional)</summary>
+
+Instale o torch CUDA **dentro do venv**, sem tocar no `pyproject.toml` (assim você não
+quebra o ambiente de quem está em Mac/Linux):
+
+```powershell
+poetry install
+poetry run pip install torch==2.6.0+cu124 --index-url https://download.pytorch.org/whl/cu124
+```
+
+O `poetry install` volta a sobrescrever isso; basta repetir a segunda linha quando ocorrer.
+Alternativa mais estável: rodar o projeto no **WSL2 (Ubuntu)**, onde a wheel padrão do PyPI
+já vem com CUDA 12.4 e nada disso é necessário.
+
+</details>
 
 ```bash
 poetry install                                  # 1. cria o ambiente isolado e instala tudo
-poetry run sonar                           # 2. pipeline offline (PLN → tópicos → scores)
+poetry run sonar                                # 2. pipeline offline (PLN → tópicos → scores)
 poetry run streamlit run src/dashboard/app.py   # 3. abre o dashboard de tendências
 ```
+
+> **Atalhos:** há um `Makefile` com os alvos mais usados — `make up` sobe o Ollama (+ modelo)
+> e o dashboard de uma vez, `make demo` roda o pipeline antes disso, `make test` roda a
+> suíte, `make help` lista tudo. Funciona em **Linux e macOS**; no Windows use os comandos
+> `poetry run` acima (o Makefile depende de `pgrep`/`pkill`) ou rode dentro do WSL2.
 
 > Os artefatos de dados (corpus congelado, tópicos, scores, briefings e índice de
 > embeddings) são **versionados no repositório** — um clone limpo já abre o dashboard
@@ -85,19 +110,34 @@ poetry run streamlit run src/dashboard/app.py   # 3. abre o dashboard de tendên
 
 ### Fase 5 — IA generativa (Analista IA + chat RAG)
 
-Os recursos de LLM (aba "🧠 Análise" e o chat RAG do dashboard) usam um modelo **local**
-servido pelo [Ollama](https://ollama.com). Sem ele, o dashboard continua funcionando —
-as seções de IA apenas exibem o fallback.
+> **Esta fase é opcional.** O dashboard e todo o pipeline funcionam sem nenhum LLM — as
+> seções de IA exibem um fallback, e os briefings já versionados continuam sendo lidos
+> normalmente. Instale o Ollama só se quiser **regenerar** análises ou usar o chat RAG.
+
+Os recursos de LLM (aba "🧠 Análise" e o chat RAG) usam um modelo **local** servido pelo
+[Ollama](https://ollama.com).
+
+**1. Instalar o Ollama** — escolha a sua plataforma:
 
 ```bash
-curl -fsSL https://ollama.com/install.sh | sh   # 1. instala o Ollama (Linux)
-ollama pull qwen2.5:14b                         # 2. baixa o modelo (ADR-002, ~9 GB)
-poetry run python -m src.insight.run            # 3. (opcional) regenera os briefings do Analista IA
+curl -fsSL https://ollama.com/install.sh | sh   # Linux
+brew install ollama && brew services start ollama   # macOS (ou baixe o .dmg do site)
+winget install Ollama.Ollama                    # Windows (ou baixe o .exe do site)
+```
+
+**2. Baixar o modelo e (opcionalmente) regenerar os briefings:**
+
+```bash
+ollama pull qwen2.5:14b                         # ~9 GB (modelo validado no ADR-002)
+poetry run python -m src.insight.run            # opcional: regenera os briefings
 ```
 
 - **Hardware:** o `qwen2.5:14b` (Q4) usa **~11 GB de VRAM** (validado em GPU de 16 GB).
-  Em GPUs menores o Ollama divide com a RAM (funciona, porém lento). Alternativa: aponte
-  para um endpoint remoto OpenAI-compatible.
+  Em GPUs menores o Ollama divide com a RAM (funciona, porém lento). Em Macs Apple Silicon
+  a memória é unificada — 16 GB rodam, com folga menor. Máquina sem capacidade? Duas saídas
+  sem tocar no código: apontar `base_url` para um endpoint remoto OpenAI-compatible, ou usar
+  um modelo menor (ex.: `qwen2.5:7b`) — neste caso a qualidade **deixa de corresponder** ao
+  benchmark do ADR-002, então registre isso ao comparar resultados.
 - **Configuração:** endpoint e modelo em `config/config.yaml → insight`
   (`base_url: http://localhost:11434/v1`, `model: qwen2.5:14b`). Para endpoint remoto,
   troque `base_url`/`model` e exporte a chave na env var `LLM_API_KEY` (com Ollama local
@@ -110,7 +150,7 @@ poetry run python -m src.insight.run            # 3. (opcional) regenera os brie
 
 ## Stack
 
-Python 3.12 · Poetry · PyTorch (CUDA 12.4) · Sentence-Transformers · BERTopic · pandas/pyarrow · statsmodels · Streamlit · Plotly · NetworkX · pydantic · Ollama + SDK OpenAI (LLM local, endpoint OpenAI-compatible)
+Python 3.12 · Poetry · PyTorch 2.6 (CUDA 12.4 no Linux · MPS no Apple Silicon · CPU no Windows) · Sentence-Transformers · BERTopic · pandas/pyarrow · statsmodels · Streamlit · Plotly · NetworkX · pydantic · Ollama + SDK OpenAI (LLM local opcional, endpoint OpenAI-compatible)
 
 ## Guia rápido de Git (para a equipe)
 
