@@ -105,18 +105,21 @@ Fonte única da verdade tecnológica — todo o `pyproject.toml` deriva daqui.
 | Versionamento de dados | Git (versionamento direto) | — | Dataset congelado pesado | Reprodutibilidade do demo |
 | CI/CD · Auth · API · CDN | **N/A** | — | — | Produto offline read-only |
 
-### Environment com Poetry (PyTorch + CUDA)
+### Environment com Poetry (PyTorch multiplataforma)
 
-PyTorch com CUDA vem de índice próprio (não PyPI). Resolver via source explícito:
+O `torch` vem do **PyPI, sem índice customizado**. As wheels oficiais já são específicas
+por plataforma e entregam a aceleração certa em cada uma, então um único `pyproject.toml`
+serve à equipe inteira — sem override local por máquina.
 
 ```toml
 [tool.poetry.dependencies]
 python = "^3.12"
-torch = { version = "^2.4", source = "pytorch-cu124" }
+torch = "~2.6"
 sentence-transformers = "^3.0"
 bertopic = "^0.16"
 pandas = "^2.2"
 pyarrow = "^17.0"
+numpy = "*"
 statsmodels = "^0.14"
 streamlit = "^1.38"
 plotly = "^5.22"
@@ -126,21 +129,43 @@ pyyaml = "^6.0"
 trafilatura = "^1.12"
 lxml = "^5.2"
 requests = "^2.32"
+openai = "^2.44.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3"
 ruff = "^0.6"
 
-[[tool.poetry.source]]
-name = "pytorch-cu124"
-url = "https://download.pytorch.org/whl/cu124"
-priority = "explicit"
-
-[tool.poetry.scripts]
+[project.scripts]
 sonar = "run_all:main"
 ```
 
-**Regras:** `priority = "explicit"` é obrigatório (senão o Poetry tenta resolver tudo no índice do PyTorch). Casar `cu124` com o driver da GPU (fallback `cu121`/`cu118`/`cpu`). CPU-only roda mais lento — mitigado pelo MiniLM.
+| Plataforma | O que o PyPI entrega | Aceleração |
+|---|---|---|
+| Linux x86_64 | build CUDA 12.4 (puxa `nvidia-*` sob marker de Linux/x86_64) | GPU NVIDIA |
+| macOS arm64 | build com MPS/Metal | GPU Apple Silicon |
+| Windows x86_64 | build CPU-only | CPU |
+| Qualquer uma sem GPU | mesma wheel, fallback automático | CPU |
+
+**Regras:**
+
+- **Nunca declarar source explícita para o `torch`.** O índice
+  `download.pytorch.org/whl/cu124` publica apenas wheels linux/windows — apontar o `torch`
+  para lá quebra `poetry install` em Apple Silicon e força cada dev de Mac a manter um
+  override local (`git update-index --skip-worktree`), que por sua vez trava troca de
+  branch e faz `git status` reportar limpo com o arquivo alterado. Além disso é
+  **redundante**: a wheel do PyPI para Linux x86_64 já declara
+  `nvidia-cuda-runtime-cu12==12.4.127` e `nvidia-cublas-cu12==12.4.5.8` — a mesma CUDA 12.4.
+- **Markers por plataforma não são alternativa válida.** Foram testados e descartados: o
+  instalador do Poetry 2.x deduplica por nome de pacote e ignora o marker quando existem
+  duas entradas da mesma versão-base, tentando baixar a wheel CUDA no macOS.
+- **`torch` fixado em `~2.6`** para manter dev e VM GPU na mesma versão upstream (mesma
+  numérica, mesma API do `sentence-transformers`/BERTopic).
+- Só volte a declarar uma source se o projeto precisar de um CUDA **diferente** do default
+  do PyPI (ex.: `cu118` para driver antigo, ou build CPU-only para economizar disco) — e,
+  nesse caso, para todas as plataformas de uma vez, nunca via markers.
+- **Windows + NVIDIA:** as wheels do PyPI para Windows são CPU-only. Quem precisar de GPU
+  no Windows deve instalar o torch CUDA manualmente **dentro do venv**, sem alterar o
+  `pyproject.toml` (ver README, seção "Como rodar").
 
 ---
 
@@ -381,7 +406,8 @@ poetry run ruff check . && poetry run ruff format .
 - **Embeddings alinhados:** nunca persistir `.npy` sem o `embeddings_index.parquet` no mesmo passo.
 - **Config centralizada:** parâmetros só via objeto pydantic de `config.yaml` — sem número mágico.
 - **Funções puras na lógica:** cálculo separado de I/O e GPU.
-- **PyTorch source:** `torch` sempre da source `pytorch-cu124` com `priority=explicit`.
+- **PyTorch sem source customizada:** `torch` sempre do PyPI (`torch = "~2.6"`). Nada de
+  `[[tool.poetry.source]]` nem de markers por plataforma — quebra macOS (ver Environment).
 - **Reprodutibilidade:** fixar `seed`/`random_state` em UMAP/HDBSCAN/LSTM onde possível.
 
 | Elemento | Convenção | Exemplo |
