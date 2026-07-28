@@ -57,6 +57,11 @@ venv/
 env/
 .ipynb_checkpoints/
 
+# Caches de ferramentas
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
 # Modelos / embeddings / artefatos pesados
 *.pt
 *.bin
