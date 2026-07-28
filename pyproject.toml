@@ -6,8 +6,7 @@ authors = [{ name = "Equipe SONAR (UC17)" }]
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12,<4.0"
-# Dependências são resolvidas pelo Poetry a partir de [tool.poetry.dependencies]
-# (necessário para apontar o torch à source CUDA explícita).
+# Dependências são resolvidas pelo Poetry a partir de [tool.poetry.dependencies].
 dynamic = ["dependencies"]
 
 [project.scripts]
@@ -19,8 +18,20 @@ packages = [{ include = "src" }]
 [tool.poetry.dependencies]
 python = "^3.12"
 
-# --- Deep Learning (PyTorch via source explícita CUDA 12.4) ---
-torch = { version = "^2.4", source = "pytorch-cu124" }
+# --- Deep Learning (PyTorch) ---
+# Uma única linha serve a toda a equipe: as wheels oficiais do PyPI já são
+# específicas por plataforma e trazem a aceleração certa em cada uma.
+#   Linux x86_64 : build CUDA 12.4 — o torch declara nvidia-cuda-runtime-cu12==12.4.127
+#                  e nvidia-cublas-cu12==12.4.5.8 sob o marker
+#                  'platform_system == "Linux" and platform_machine == "x86_64"'.
+#                  É exatamente a mesma CUDA que o índice download.pytorch.org/whl/cu124
+#                  entregava — a source explícita era redundante.
+#   macOS arm64  : build com MPS/Metal (não existe wheel CUDA para darwin).
+# Como as deps nvidia-* são marker-gated, o macOS não as baixa.
+#
+# Pin em ~2.6 para manter o dev no Mac e o pipeline na VM GPU na mesma versão upstream
+# (mesma numérica, mesma API do sentence-transformers/BERTopic). Subir com cuidado.
+torch = "~2.6"
 
 # --- PLN / Embeddings ---
 sentence-transformers = "^3.0"
@@ -53,13 +64,14 @@ openai = "^2.44.0"
 pytest = "^8.3"
 ruff = "^0.6"
 
-# Source explícita do PyTorch com wheels CUDA 12.4.
-# priority = "explicit" garante que SÓ o torch venha daqui (evita travar a resolução).
-# Fallback: trocar "cu124" por "cu121" ou "cpu" se o driver da GPU não suportar 12.4.
-[[tool.poetry.source]]
-name = "pytorch-cu124"
-url = "https://download.pytorch.org/whl/cu124"
-priority = "explicit"
+# NOTA: a source explícita "pytorch-cu124" (download.pytorch.org/whl/cu124) foi removida.
+# Ela entregava a mesma CUDA 12.4 que as wheels do PyPI já trazem no Linux, mas publica
+# apenas wheels linux/windows — o que quebrava `poetry install` em Apple Silicon e obrigava
+# cada dev de Mac a manter um override local via `git update-index --skip-worktree`.
+# Só volte a declará-la se o projeto precisar de um CUDA diferente do default do PyPI
+# (ex.: cu118 para driver antigo, ou build cpu-only) — e, nesse caso, para todas as
+# plataformas de uma vez, nunca via markers (o instalador do Poetry deduplica por nome
+# de pacote e ignora o marker quando há duas entradas da mesma versão-base).
 
 [tool.ruff]
 line-length = 100

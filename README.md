@@ -56,11 +56,13 @@ tests/  scripts/  docs/
 
 ## Como rodar (reprodução do demo)
 
-Pré-requisitos: **Python 3.12** e **Poetry**. Para a GPU, driver NVIDIA com suporte a
-CUDA 12.4 (o pipeline offline foi validado em NVIDIA T1000, driver 573.44). Sem GPU
-compatível, o pipeline roda em modo CPU — basta trocar `cu124` por `cpu` no
-`pyproject.toml`. Em Apple Silicon (M1/M2/M3), a aceleração MPS/Metal é detectada
-automaticamente.
+Pré-requisitos: **Python 3.12** e **Poetry**. Nada além de `poetry install` é necessário
+em nenhuma plataforma: as wheels oficiais do PyTorch já são específicas por sistema.
+
+- **Linux + NVIDIA:** vem a build CUDA 12.4 automaticamente (validado em NVIDIA T1000,
+  driver 573.44). Só é preciso o driver com suporte a CUDA 12.4.
+- **Apple Silicon (M1/M2/M3):** vem a build com MPS/Metal, detectada automaticamente.
+- **Sem GPU compatível:** o pipeline cai para CPU sozinho, sem editar nada.
 
 ```bash
 poetry install                                  # 1. cria o ambiente isolado e instala tudo
