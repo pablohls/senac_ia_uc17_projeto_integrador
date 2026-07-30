@@ -212,6 +212,20 @@ git fetch origin
 git cherry -v origin/main main    # lista o que existe só aqui; nada listado = nada exclusivo
 ```
 
+**Salve os arquivos locais não versionados antes do reset.** O `reset --hard` apaga do disco
+todo arquivo que era rastreado antes e não existe na versão nova — **inclusive os que hoje
+estão no `.gitignore`**. É o caso dos documentos internos de processo, que saíram do rastreio
+em `c30fe85` para serem "mantidos localmente": eles somem no reset, e como estão ignorados,
+**nada aparece no `git status`** para avisar. Faça uma cópia fora do repositório:
+
+```bash
+mkdir -p ~/backup-sonar
+cp -r docs/handoff-*.md docs/runlogs/ ~/backup-sonar/ 2>/dev/null
+```
+
+Depois do reset, devolva ao lugar com `cp -r ~/backup-sonar/* docs/` (eles voltam a ser
+ignorados pelo git, sem sujar o repositório).
+
 - **Nada foi listado** → você não tem trabalho exclusivo. Pode re-sincronizar:
 
   ```bash
